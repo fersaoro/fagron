@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fagron Colombia — Dashboard Ejecutivo</title>
+<link rel="stylesheet" href="/css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div id="loading-bar" class="loading-bar"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <img src="/data/logoblanco.png" alt="Fagron" class="topbar-logo"
+       onerror="this.onerror=null;this.style.cssText='color:#E43733;font-size:18px;font-weight:700;font-family:Roboto,sans-serif';this.outerHTML='<span style=\'color:#E43733;font-size:18px;font-weight:700\'>FAGRON</span>'">
+  <div class="topbar-right">
+    <div class="metric-toggle">
+      <button class="metric-btn active" id="btn-cop"   onclick="setMetric('cop')">COP $</button>
+      <button class="metric-btn"        id="btn-units" onclick="setMetric('units')">Unidades</button>
+    </div>
+    <span class="topbar-date" id="status-info">Cargando datos…</span>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">🔍</span>
+
+  <select class="filter-select" id="f-year" onchange="applyFilters()">
+    <option value="">Todos los años</option>
+  </select>
+
+  <select class="filter-select" id="f-mes" onchange="applyFilters()">
+    <option value="">Todos los meses</option>
+  </select>
+
+  <select class="filter-select" id="f-zona" onchange="applyFilters()">
+    <option value="">Todas las zonas</option>
+    <option value="PERIFERIA">Periferia</option>
+    <option value="CENTRO">Centro</option>
+    <option value="MP">Materias Primas</option>
+    <option value="SAC">SAC</option>
+    <option value="OTROS">Otros</option>
+  </select>
+
+  <select class="filter-select" id="f-gerente" onchange="applyFilters()">
+    <option value="">Todos los gerentes</option>
+    <option value="ERIKA LOPEZ">Erika López</option>
+    <option value="BEATRIZ SALAS">Beatriz Salas</option>
+  </select>
+
+  <select class="filter-select" id="f-asesor" onchange="applyFilters()">
+    <option value="">Todos los asesores</option>
+  </select>
+
+  <select class="filter-select" id="f-linea" onchange="applyFilters()">
+    <option value="">Todas las líneas</option>
+  </select>
+
+  <button class="filter-reset" onclick="resetFilters()">✕ Limpiar</button>
+  <span class="filter-badge" id="filter-badge"></span>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showPage(0)">① Resumen</button>
+  <button class="tab"        onclick="showPage(1)">② Asesores</button>
+  <button class="tab"        onclick="showPage(2)">③ Zonas</button>
+  <button class="tab"        onclick="showPage(3)">④ Clientes</button>
+  <button class="tab"        onclick="showPage(4)">⑤ Productos</button>
+  <button class="tab"        onclick="showPage(5)">⑥ Especialidades</button>
+  <button class="tab"        onclick="showPage(6)">⑦ Colsubsidio</button>
+  <button class="tab"        onclick="showPage(7)">⑧ Inconsistencias</button>
+  <button class="tab"        onclick="showPage(8)">⑨ Forecast</button>
+  <button class="tab"        onclick="showPage(9)">⑩ Plan de Acción</button>
+  <button class="tab"        onclick="showPage(10)">⑪ Moléculas</button>
+</div>
+
+<div id="app-error"></div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 0 — RESUMEN EJECUTIVO
+     ════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-0">
+  <div class="section-hdr"><div class="bar"></div><h2>Resumen Ejecutivo</h2></div>
+  <div class="section-sub">Panorama general del negocio · Filtros activos aplicados a todas las vistas</div>
+  <div class="kpis" id="kpis-0">
+    <div class="spinner-wrap"><div class="spinner"></div>Cargando…</div>
+  </div>
+  <div class="g21">
+    <div class="card">
+      <div class="card-title">Evolución Anual de Ventas</div>
+      <div class="card-sub">COP · 2019–2026</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-yearly"></canvas></div>
+      <div class="insight"><strong>Tendencia 2019–2025:</strong> Crecimiento histórico sostenido. 2025 tuvo leve caída (-2.9% vs 2024). 2026 con momentum positivo (+4.1% YoY en Ene-Abr). <strong>Acción:</strong> Sostener aceleración H2 2026 con temporadas clave.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mix por Línea</div>
+      <div class="card-sub">Participación en ventas · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-line-pie"></canvas></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Comparativo Mensual YoY</div>
+      <div class="card-sub">Año seleccionado vs año anterior</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c-yoy"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Ventas por Zona</div>
+      <div class="card-sub">Año seleccionado · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c-zone-bar"></canvas></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Top 10 Productos</div>
+      <div class="card-sub" id="p0-prod-sub">Por familia · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:250px"><canvas id="c-top-prods"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 Clientes</div>
+      <div class="card-sub">Ventas acumuladas · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:250px"><canvas id="c-top-clients"></canvas></div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="alert alert-r"><div class="alert-title" style="color:var(--red)">🔴 Crítico</div><div style="font-size:11px;line-height:1.6">2025 cerró -2.9% vs 2024. Diana Becerra cayó -53.3%. Alejandro Henao -19.6%. 11 asesores con múltiples zonas en el sistema.</div></div>
+    <div class="alert alert-a"><div class="alert-title" style="color:#b47e00">🟡 Importante</div><div style="font-size:11px;line-height:1.6">Valores negativos -$777M en Otras Actividades. Solo Colsubsidio reporta sell-out. Inconsistencias de clasificación por corregir.</div></div>
+    <div class="alert alert-g"><div class="alert-title" style="color:var(--green)">🟢 Oportunidad</div><div style="font-size:11px;line-height:1.6">Maira Acosta +130.2% YoY. Gisela Uribe +58.3%. Temporada solar (May–Ago) y Amor & Amistad (Sep) se aproximan.</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 1 — ASESORES
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-1">
+  <div class="section-hdr"><div class="bar"></div><h2>Asesores & Gerentes</h2></div>
+  <div class="section-sub">Desempeño individual · Ranking · Top 5 acciones por asesor</div>
+  <div class="kpis" id="kpis-1"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Ranking de Asesores</div>
+    <div class="card-sub">Ordenado por ventas · Crecimiento YoY incluido</div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead><tr>
+          <th>#</th><th>Asesor</th><th>Zona</th><th>Gerente</th>
+          <th id="adv-th-v">Ventas COP</th><th>Crec. YoY</th>
+          <th>Clientes</th><th>Top Producto</th><th>Part.</th>
+        </tr></thead>
+        <tbody id="adv-tbody"><tr><td colspan="9" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Tendencia Mensual por Asesor</div>
+      <div class="card-sub">Selecciona un asesor · 2025 vs 2026</div>
+      <select id="adv-select" style="width:100%;margin-bottom:10px;padding:6px;border-radius:4px;border:1px solid var(--silver);font-size:11px" onchange="onAdvisorSelect(this.value)">
+        <option value="">Selecciona un asesor…</option>
+      </select>
+      <div class="chart-wrap" style="height:190px"><canvas id="c-adv-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Comparativo Gerentes</div>
+      <div class="card-sub">Erika López (Periferia) vs Beatriz Salas (Centro+MP)</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="c-gerentes"></canvas></div>
+      <div class="insight amber-i"><strong>Erika López</strong> maneja Periferia. <strong>Beatriz Salas</strong> maneja Centro y MP. Los filtros activos afectan los totales de cada gerente.</div>
+    </div>
+  </div>
+  <div class="section-hdr" style="margin:4px 0 12px"><div class="bar"></div><h2 style="font-size:16px">Top 5 Acciones por Asesor — Basadas en Datos Reales</h2></div>
+  <div id="adv-actions-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px">
+    <div class="spinner-wrap"><div class="spinner"></div>Cargando acciones…</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 2 — ZONAS
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-2">
+  <div class="section-hdr"><div class="bar"></div><h2>Zonas, Ciudades & Territorios</h2></div>
+  <div class="section-sub">Distribución geográfica de ventas · Histórico y tendencia</div>
+  <div class="kpis" id="kpis-2"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Evolución por Zona</div>
+      <div class="card-sub">2023–2026 · Barras agrupadas</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="c-zone-trend"></canvas></div>
+      <div class="insight">Periferia supera a Centro desde 2025. MP crece fuertemente (+130% YoY). <strong>Alerta:</strong> Centro cayó de $8.8B (2024) a $6.5B (2025).</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Participación por Zona</div>
+      <div class="card-sub">Año seleccionado · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c-zone-pie"></canvas></div>
+      <div class="chart-wrap" style="height:160px;margin-top:12px"><canvas id="c-zone-bar-p2"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 3 — CLIENTES
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-3">
+  <div class="section-hdr"><div class="bar"></div><h2>Análisis por Cliente</h2></div>
+  <div class="section-sub">Sell-In (compras a Fagron) · Sell-Out (solo Colsubsidio) · Todos los filtros aplicados</div>
+  <div class="kpis" id="kpis-3"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+
+  <div class="g21">
+    <div class="card">
+      <div class="card-title">Ranking de Clientes — Sell-In</div>
+      <div class="card-sub">Lo que cada cliente le compra a Fagron · Filtros aplicados</div>
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Cliente</th><th>Tipo</th><th id="client-th">Sell-In COP</th><th>Pedidos</th><th>%</th><th>Barra</th></tr></thead>
+          <tbody id="client-tbody"><tr><td colspan="7" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Segmentación por Tipo</div>
+        <div class="card-sub">Sell-In por tipo de cliente</div>
+        <div class="chart-wrap" style="height:170px"><canvas id="c-client-type"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Frecuencia de Compra</div>
+        <div class="card-sub">Pedidos por cliente top</div>
+        <div class="chart-wrap" style="height:145px"><canvas id="c-client-freq"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Sell-In Mensual — Top Clientes</div>
+    <div class="card-sub">Evolución mes a mes del sell-in (lo que Fagron vende a sus clientes)</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="c-sellin-sellout"></canvas></div>
+    <div class="insight amber-i" style="margin-top:10px">
+      <strong>Sell-In</strong> = lo que Fagron factura a cada cliente (los datos de los Excel DATA).<br>
+      <strong>Sell-Out</strong> = lo que el cliente vende al consumidor final. Solo disponible para Colsubsidio.
+      Ve a la pestaña <strong>⑦ Colsubsidio</strong> para ver el sell-out detallado por tienda.
+    </div>
+  </div>
+  <div id="sellout-note"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 4 — PRODUCTOS
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-4">
+  <div class="section-hdr"><div class="bar"></div><h2>Productos, Líneas & Familias</h2></div>
+  <div class="section-sub">Desempeño por familia y categoría · Todos los filtros aplicados</div>
+  <div class="kpis" id="kpis-4"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Top 15 Familias de Productos</div>
+      <div class="card-sub" id="prod-detail-sub">Acumulado periodo seleccionado</div>
+      <div class="chart-wrap" style="height:310px"><canvas id="c-family"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Participación por Línea</div>
+      <div class="card-sub">Donut + tabla detalle</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c-line-donut"></canvas></div>
+      <div class="divider" style="height:1px;background:var(--light);margin:14px 0"></div>
+      <table class="tbl">
+        <thead><tr><th>Línea</th><th id="lt-v">Ventas COP</th><th>%</th></tr></thead>
+        <tbody id="line-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 5 — ESPECIALIDADES
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-5">
+  <div class="section-hdr"><div class="bar"></div><h2>Especialidades Médicas & Médicos</h2></div>
+  <div class="section-sub">Análisis de prescripción · Top médicos · Parrilla de visita · Filtros aplicados</div>
+  <div class="kpis" id="kpis-5"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Ventas por Especialidad</div>
+      <div class="card-sub">Top 10 especialidades · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-specs"></canvas></div>
+      <div class="insight"><strong>Dermatología domina</strong> con ~89% de ventas por especialidad. Canal de prescripción más importante.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 Médicos Prescriptores</div>
+      <div class="card-sub">Por ventas generadas · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-docs"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Parrilla Médica de Visita — Priorización por Datos</div>
+    <div class="card-sub">Top 20 médicos con prioridad de visita</div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead><tr><th>#</th><th>Médico</th><th>Especialidad</th><th id="doc-th">Ventas COP</th><th>Prioridad</th></tr></thead>
+        <tbody id="doc-tbody"><tr><td colspan="5" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="insight green-i" style="margin-top:12px"><strong>Acción mercadeo:</strong> Desarrollar argumentario científico diferencial para Minoxidil magistral vs genérico. Estos médicos son los que más impacto tienen en las ventas.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 6 — COLSUBSIDIO
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-6">
+  <div class="section-hdr"><div class="bar"></div><h2>Colsubsidio — Análisis Exclusivo</h2></div>
+  <div class="section-sub">Sell-out · Inventarios · Rotación · 2022–2026 · Filtro por Punto de Venta</div>
+
+  <div style="background:var(--dark);display:flex;align-items:center;gap:10px;padding:8px 16px;border-radius:6px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="color:var(--silver);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px">🏪 Filtrar por Tienda:</span>
+    <select class="filter-select" id="f-tienda" onchange="loadColsubsidio(this.value)" style="min-width:250px">
+      <option value="">Todas las tiendas</option>
+    </select>
+  </div>
+
+  <div class="kpis colsub-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    <div class="spinner-wrap" style="grid-column:1/-1"><div class="spinner"></div>Cargando…</div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Tendencia Sell-Out Mensual — Colsubsidio</div>
+    <div class="card-sub">Unidades vendidas al consumidor final · Mes a mes · Tienda seleccionada</div>
+    <div class="chart-wrap" style="height:200px"><canvas id="c-colsub-monthly"></canvas></div>
+    <div class="insight green-i">
+      <strong>Sell-Out</strong> = lo que Colsubsidio vende al consumidor final en sus puntos de venta.
+      Este es el indicador más importante de demanda real. Usar filtro de tienda para ver el detalle por punto de venta.
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Top Productos Sell-Out (Unidades)</div>
+      <div class="card-sub">Consumo real del cliente final · Tienda seleccionada</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-colsub-so"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Inventarios Colsubsidio (Unidades)</div>
+      <div class="card-sub">Stock disponible en puntos de venta</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-colsub-inv"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Análisis de Rotación — Sell-Out vs Inventario</div>
+    <div class="card-sub">Diagnóstico por producto</div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead><tr><th>Producto</th><th>Sell-Out (u)</th><th>Inventario (u)</th><th>Rotación</th><th>Estado</th></tr></thead>
+        <tbody id="colsub-rot-tbody"><tr><td colspan="5" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 7 — INCONSISTENCIAS
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-7">
+  <div class="section-hdr"><div class="bar"></div><h2>Inconsistencias Comerciales</h2></div>
+  <div class="section-sub">Datos mal clasificados o asignaciones incorrectas detectadas en el sistema</div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-lbl">Asesores multi-zona</div><div class="kpi-val red" id="incon-count">—</div><div class="kpi-note">Con ventas en más de 1 zona</div></div>
+    <div class="kpi gray"><div class="kpi-lbl">Sin zona asignada</div><div class="kpi-val green">0</div><div class="badge neutral">✓ OK</div></div>
+    <div class="kpi gray"><div class="kpi-lbl">Sin asesor asignado</div><div class="kpi-val green">0</div><div class="badge neutral">✓ OK</div></div>
+    <div class="kpi"><div class="kpi-lbl">Valores negativos</div><div class="kpi-val red">−$777M</div><div class="kpi-note">Otras Actividades 2025–2026</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Asesores con Múltiples Zonas Detectadas</div>
+      <div class="card-sub">Posible error de asignación — requiere validación con gerentes</div>
+      <div id="incon-list"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+      <div class="insight"><strong>Causa probable:</strong> Reasignación de clientes entre zonas sin actualizar histórico, o errores de captura. <strong>Acción:</strong> Validar con cada gerente y corregir en CRM antes del 31 de julio.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Otras Inconsistencias Detectadas</div>
+      <div class="card-sub">Campos, clasificación y datos</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <div class="alert alert-r"><div class="alert-title" style="color:var(--red)">🔴 OTRAS ACTIVIDADES: −$777M</div><div style="font-size:11px">Línea con valores negativos acumulados. Verificar si son notas crédito, devoluciones o errores contables.</div></div>
+        <div class="alert alert-a"><div class="alert-title" style="color:#b47e00">⚠️ CAMPO MÉDICOS DUPLICADO</div><div style="font-size:11px">Columnas "MEDICOS" y "MÉDICOS" (con tilde) contienen el mismo dato. Normalizar en el sistema origen.</div></div>
+        <div class="alert alert-a"><div class="alert-title" style="color:#b47e00">⚠️ "MAQUILA" vs "Maquila"</div><div style="font-size:11px">Línea con dos versiones de capitalización. Afecta filtros y agrupaciones.</div></div>
+        <div class="alert alert-g"><div class="alert-title" style="color:var(--green)">✅ SELL-OUT: Solo Colsubsidio</div><div style="font-size:11px">Solo 1 cliente reporta sell-out sistemáticamente. Implementar programa con top 10 clientes para obtener este dato.</div></div>
+        <div class="alert alert-b"><div class="alert-title" style="color:var(--blue)">💡 CIUDAD disponible en datos</div><div style="font-size:11px">El campo CIUDAD existe en los Excel y está disponible para análisis territorial granular por municipio.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 8 — FORECAST
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-8">
+  <div class="section-hdr"><div class="bar"></div><h2>Forecast & Tendencia 2026</h2></div>
+  <div class="section-sub">Proyección Mayo–Diciembre · Estacionalidad histórica 2023–2025 · 3 escenarios</div>
+  <div class="kpis" id="kpis-8"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Tendencia Real + Forecast Mensual 2026</div>
+    <div class="card-sub">Datos reales Ene–Abr vs proyección Mayo–Dic · Comparado con 2025</div>
+    <div class="chart-wrap" style="height:270px"><canvas id="c-forecast"></canvas></div>
+    <div class="insight green-i"><strong>Julio, Agosto y Septiembre</strong> son históricamente los meses más fuertes (>9% del año). Temporadas clave: Día de la Madre (mayo), Solar (may–ago), Amor & Amistad (sep), Black Friday (nov), Navidad (dic).</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Detalle Numérico Forecast Mayo–Diciembre 2026</div>
+    <div class="card-sub">3 escenarios · Basado en estacionalidad histórica</div>
+    <div class="fc-grid" id="fc-grid"><div class="spinner-wrap"><div class="spinner"></div>Calculando…</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 9 — PLAN DE ACCIÓN
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-9">
+  <div class="section-hdr"><div class="bar"></div><h2>Plan de Acción H2 2026</h2></div>
+  <div class="section-sub">Acciones basadas en datos reales · Asesores en caída vs en crecimiento · Meta: superar histórico 2024</div>
+  <div id="p9-content">
+    <div class="spinner-wrap"><div class="spinner"></div>Analizando datos…</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 10 — MOLÉCULAS
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-10">
+  <div class="section-hdr"><div class="bar"></div><h2>Moléculas & Activos</h2></div>
+  <div class="section-sub">Comportamiento por molécula · Año a año · Mes a mes · Tendencias y oportunidades · Filtros aplicados</div>
+  <div class="kpis" id="kpis-10"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+
+  <div class="g21">
+    <div class="card">
+      <div class="card-title">Ranking de Moléculas</div>
+      <div class="card-sub">Ordenado por ventas · Crecimiento YoY · Filtros aplicados</div>
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Molécula / Familia</th><th>Línea</th><th>Ventas</th><th>%</th><th>Crec. YoY</th><th>Barra</th></tr></thead>
+          <tbody id="mol-tbody"><tr><td colspan="7" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Moléculas</div>
+      <div class="card-sub">Barras horizontales · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:360px"><canvas id="c-mol-top"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Evolución Anual por Molécula</div>
+      <div class="card-sub">Top 6 moléculas · Tendencia año a año</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-mol-yearly"></canvas></div>
+      <div class="insight"><strong>Minoxidil</strong> lidera históricamente con tendencia alcista. ABSORB-K y Sunglass muestran crecimiento reciente. <strong>Oportunidad:</strong> moléculas con caída YoY requieren plan de recuperación médica.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tendencia Mensual por Molécula</div>
+      <div class="card-sub">Top 5 moléculas · Mes a mes año seleccionado</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-mol-monthly"></canvas></div>
+      <div class="insight amber-i"><strong>Estacionalidad:</strong> Sunglass y ABSORB-K tienen pico en May–Ago (solar). Minoxidil es constante todo el año. Las hormonas tienen variaciones por ciclos médicos.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     SCRIPTS
+     ════════════════════════════════════════════════════════ -->
+<script src="/js/app.js"></script>
+<script src="/js/charts.js"></script>
+<script src="/js/pages.js"></script>
+
+<script>
+// Colsubsidio tienda filter
+async function loadColsubsidio(tienda) {
+  Charts.destroyAll();
+  await Pages.rebuild(6);
+}
+
+// Advisor selector for individual monthly chart
+async function onAdvisorSelect(asesor) {
+  if (!asesor) return;
+  const data = await apiFetch('advisor-monthly', { asesor }, false);
+  if (data) Charts.advisorMonthly('c-adv-monthly', data['2025'], data['2026']);
+}
+
+// Populate advisor select in page 1
+document.addEventListener('DOMContentLoaded', () => {
+  const masterSel = document.getElementById('f-asesor');
+  const advSel    = document.getElementById('adv-select');
+  const observer = new MutationObserver(() => {
+    if (masterSel.options.length > 1) {
+      advSel.innerHTML = '<option value="">Selecciona un asesor…</option>';
+      Array.from(masterSel.options).slice(1).forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.value; opt.textContent = o.textContent;
+        advSel.appendChild(opt);
+      });
+      observer.disconnect();
+    }
+  });
+  observer.observe(masterSel, { childList: true });
+});
+
+// Update inconsistency count after page 7 loads
+const _origBuildP7 = Pages.rebuild.bind(Pages);
+</script>
+</body>
+</html>
