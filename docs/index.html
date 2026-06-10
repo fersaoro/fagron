@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Fagron Colombia — Dashboard Ejecutivo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ============================================================
+   Fagron Colombia — Dashboard Ejecutivo
+   Fuente: Roboto (Google Fonts)
+   Colores: #E43733 rojo, #9C9E9F gris, #4B4B4B oscuro
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Condensed:wght@400;700&display=swap');
+
+:root {
+  --red:    #E43733;
+  --gray:   #9C9E9F;
+  --dark:   #4B4B4B;
+  --silver: #C6C7C8;
+  --light:  #ECEDED;
+  --bg:     #F0F0F0;
+  --salmon: #F5AA9A;
+  --white:  #FFFFFF;
+  --black:  #000000;
+  --green:  #27AE60;
+  --amber:  #F39C12;
+  --blue:   #1a73e8;
+  --shadow: 0 1px 6px rgba(0,0,0,.09);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Roboto',sans-serif; background:var(--bg); color:var(--black); font-size:13px; min-height:100vh; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background:var(--black); display:flex; align-items:center;
+  justify-content:space-between; padding:0 24px; height:56px;
+  position:sticky; top:0; z-index:300; border-bottom:3px solid var(--red);
+}
+.topbar-logo { height:30px; width:auto; object-fit:contain; display:block; }
+.topbar-right { display:flex; align-items:center; gap:12px; }
+.topbar-date  { color:var(--gray); font-size:11px; white-space:nowrap; }
+
+/* Metric toggle */
+.metric-toggle { display:flex; background:#222; border-radius:6px; overflow:hidden; border:1px solid #333; }
+.metric-btn {
+  padding:6px 14px; font-size:11px; font-weight:600; cursor:pointer;
+  border:none; background:transparent; color:var(--gray);
+  text-transform:uppercase; letter-spacing:1px; transition:all .2s;
+}
+.metric-btn.active { background:var(--red); color:var(--white); }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+  background:var(--dark); display:flex; align-items:center;
+  flex-wrap:wrap; gap:8px; padding:9px 24px;
+  border-bottom:1px solid #333; position:sticky; top:56px; z-index:200;
+}
+.filter-label { color:var(--silver); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1px; white-space:nowrap; }
+.filter-select {
+  background:#333; color:var(--white); border:1px solid #444;
+  border-radius:4px; padding:5px 10px; font-size:11px; cursor:pointer;
+  min-width:120px; outline:none; transition:border-color .2s;
+}
+.filter-select:hover, .filter-select:focus { border-color:var(--red); }
+.filter-reset {
+  background:var(--red); color:var(--white); border:none;
+  border-radius:4px; padding:5px 12px; font-size:11px;
+  font-weight:600; cursor:pointer; text-transform:uppercase;
+  letter-spacing:.5px; transition:background .2s;
+}
+.filter-reset:hover { background:#c0302c; }
+.filter-badge {
+  background:var(--red); color:var(--white); border-radius:10px;
+  padding:2px 8px; font-size:10px; font-weight:700; display:none;
+}
+.filter-badge.show { display:inline-block; }
+
+/* Loading indicator */
+.loading-bar {
+  position:fixed; top:0; left:0; width:0; height:3px;
+  background:var(--red); z-index:9999; transition:width .3s ease;
+}
+.loading-bar.active { width:70%; }
+.loading-bar.done   { width:100%; opacity:0; transition:width .3s, opacity .5s .3s; }
+
+/* ── TABS ── */
+.tabs {
+  background:#222; display:flex; overflow-x:auto; padding:0 16px;
+  gap:2px; scrollbar-width:none; border-bottom:1px solid #333;
+  position:sticky; top:calc(56px + 41px); z-index:199;
+}
+.tabs::-webkit-scrollbar { display:none; }
+.tab {
+  padding:11px 16px; color:var(--silver); font-size:10px; font-weight:600;
+  text-transform:uppercase; letter-spacing:1px; cursor:pointer;
+  border:none; background:none; border-bottom:3px solid transparent;
+  white-space:nowrap; transition:color .2s, border-color .2s;
+  flex-shrink:0;
+}
+.tab:hover  { color:var(--white); }
+.tab.active { color:var(--red); border-bottom-color:var(--red); }
+
+/* ── PAGES ── */
+.page { display:none; padding:20px 24px; animation:fadeIn .25s ease; }
+.page.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── SECTION HEADER ── */
+.section-hdr { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+.section-hdr .bar { width:4px; height:22px; background:var(--red); border-radius:2px; flex-shrink:0; }
+.section-hdr h2 { font-size:20px; font-weight:700; letter-spacing:-.3px; }
+.section-sub { color:var(--gray); font-size:12px; margin-bottom:18px; padding-left:14px; }
+
+/* ── KPI CARDS ── */
+.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:18px; }
+.kpi {
+  background:var(--white); border-radius:6px; padding:16px 18px;
+  border-left:4px solid var(--red); box-shadow:var(--shadow);
+}
+.kpi.green  { border-left-color:var(--green); }
+.kpi.amber  { border-left-color:var(--amber); }
+.kpi.gray   { border-left-color:var(--gray); }
+.kpi.blue   { border-left-color:var(--blue); }
+.kpi-lbl  { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:1.5px; color:var(--gray); margin-bottom:6px; }
+.kpi-val  { font-size:24px; font-weight:700; font-family:'Roboto Condensed',sans-serif; line-height:1; margin-bottom:4px; }
+.kpi-val.red   { color:var(--red); }
+.kpi-val.green { color:var(--green); }
+.kpi-val.amber { color:var(--amber); }
+.kpi-note { font-size:10px; color:var(--gray); }
+.badge { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; margin-top:3px; }
+.badge.up   { background:#e8f8ef; color:var(--green); }
+.badge.down { background:#fdecea; color:var(--red); }
+.badge.neutral { background:var(--light); color:var(--dark); }
+
+/* ── GRIDS ── */
+.g2  { display:grid; grid-template-columns:1fr 1fr;   gap:16px; margin-bottom:16px; }
+.g3  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
+.g21 { display:grid; grid-template-columns:2fr 1fr;   gap:16px; margin-bottom:16px; }
+
+/* ── CARD ── */
+.card { background:var(--white); border-radius:6px; padding:18px; box-shadow:var(--shadow); }
+.card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--dark); margin-bottom:3px; }
+.card-sub   { font-size:10px; color:var(--gray); margin-bottom:14px; }
+.chart-wrap { position:relative; }
+
+/* ── INSIGHT ── */
+.insight {
+  background:#FFF8F7; border-left:3px solid var(--salmon);
+  border-radius:0 5px 5px 0; padding:9px 12px; margin-top:12px;
+  font-size:11px; color:var(--dark); line-height:1.6;
+}
+.insight strong { color:var(--red); }
+.insight.green-i { background:#f0faf4; border-left-color:var(--green); }
+.insight.green-i strong { color:var(--green); }
+.insight.amber-i { background:#fffbf0; border-left-color:var(--amber); }
+.insight.amber-i strong { color:#c07a08; }
+
+/* ── TABLE ── */
+.tbl { width:100%; border-collapse:collapse; font-size:11px; }
+.tbl th { background:var(--light); padding:7px 10px; text-align:left; font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--dark); font-weight:700; white-space:nowrap; }
+.tbl td { padding:8px 10px; border-bottom:1px solid #f0f0f0; vertical-align:middle; }
+.tbl tr:hover td { background:#fafafa; }
+.tbl tr:last-child td { border-bottom:none; }
+.rank-n   { font-weight:700; color:var(--gray); font-size:10px; }
+.bar-cell { width:90px; }
+.bar-bg   { height:5px; background:var(--light); border-radius:3px; }
+.bar-fill { height:100%; background:var(--red); border-radius:3px; }
+.scroll-x { overflow-x:auto; }
+
+/* ── PILLS ── */
+.pill { display:inline-block; padding:2px 7px; border-radius:20px; font-size:9px; font-weight:700; text-transform:uppercase; }
+.pill-p { background:#e8f0fe; color:var(--blue); }
+.pill-c { background:#fce8e6; color:#c5221f; }
+.pill-m { background:#e6f4ea; color:#137333; }
+.pill-s { background:#fef7e0; color:#b45309; }
+.pill-o { background:#f3e8fd; color:#7c3aed; }
+
+/* ── SEMAPHORE ── */
+.sem { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; flex-shrink:0; }
+.sem-r { background:var(--red); }
+.sem-a { background:var(--amber); }
+.sem-g { background:var(--green); }
+
+/* ── ALERT BOXES ── */
+.alert { padding:12px 16px; border-radius:6px; border-left:4px solid; margin-bottom:10px; }
+.alert-r { background:#fdecea; border-left-color:var(--red); }
+.alert-a { background:#fffbf0; border-left-color:var(--amber); }
+.alert-g { background:#e8f8ef; border-left-color:var(--green); }
+.alert-b { background:#e8f0fe; border-left-color:var(--blue); }
+.alert-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+
+/* ── ADVISOR CARD ── */
+.adv-card { background:var(--white); border-radius:6px; box-shadow:var(--shadow); overflow:hidden; }
+.adv-header { padding:13px 16px; border-left:4px solid var(--red); display:flex; justify-content:space-between; align-items:flex-start; }
+.adv-name { font-size:13px; font-weight:700; margin-bottom:3px; }
+.adv-body { padding:10px 16px 12px; }
+.action-row { display:flex; gap:8px; align-items:flex-start; padding:7px 0; border-bottom:1px solid #f5f5f5; font-size:11px; line-height:1.5; }
+.action-row:last-child { border-bottom:none; }
+.action-num { background:var(--red); color:var(--white); width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; flex-shrink:0; margin-top:1px; }
+.action-num.amber { background:var(--amber); }
+.action-num.green { background:var(--green); }
+.tag { display:inline-block; background:var(--light); color:var(--dark); padding:1px 6px; border-radius:10px; font-size:9px; font-weight:600; margin:2px 2px 0 0; }
+
+/* ── FORECAST ── */
+.fc-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:8px; margin-top:14px; }
+.fc-month { background:var(--light); border-radius:5px; padding:10px 6px; text-align:center; }
+.fc-mes   { font-size:9px; font-weight:700; text-transform:uppercase; color:var(--gray); margin-bottom:6px; }
+.fc-row   { margin-bottom:3px; }
+.fc-sc    { font-size:9px; color:var(--gray); }
+.fc-v     { font-size:11px; font-weight:700; }
+.fc-conserv { color:var(--gray); }
+.fc-esper   { color:var(--dark); }
+.fc-acel    { color:var(--green); }
+
+/* ── COLSUBSIDIO ── */
+.colsub-kpi { background:var(--black); color:var(--white); border-radius:6px; padding:14px; text-align:center; }
+.colsub-kpi .cv { font-size:20px; font-weight:700; color:var(--salmon); font-family:'Roboto Condensed'; }
+.colsub-kpi .cl { font-size:9px; color:var(--silver); text-transform:uppercase; letter-spacing:1px; margin-top:3px; }
+
+/* ── SPINNER ── */
+.spinner-wrap { display:flex; align-items:center; justify-content:center; padding:40px; gap:10px; color:var(--gray); font-size:13px; }
+.spinner { width:20px; height:20px; border:2px solid var(--light); border-top-color:var(--red); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align:center; padding:40px; color:var(--gray); }
+.empty-state .icon { font-size:36px; margin-bottom:10px; }
+.empty-state p { font-size:13px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width:1100px) {
+  .g21 { grid-template-columns:1fr; }
+}
+@media (max-width:768px) {
+  .g2, .g3, .g21 { grid-template-columns:1fr; }
+  .kpis { grid-template-columns:repeat(2,1fr); }
+  .fc-grid { grid-template-columns:repeat(4,1fr); }
+  .page { padding:14px 12px; }
+  .filter-bar { padding:8px 12px; }
+  .topbar { padding:0 14px; }
+  .tabs { top:calc(56px + 49px); }
+}
+@media (max-width:480px) {
+  .kpis { grid-template-columns:1fr 1fr; }
+  .kpi-val { font-size:20px; }
+  .topbar-date { display:none; }
+}
+
+</style>
+</head>
+<body>
+<div id="loading-bar" class="loading-bar"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <img src="data:image/png;base64,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" alt="Fagron" class="topbar-logo"
+       onerror="this.onerror=null;this.style.cssText='color:#E43733;font-size:18px;font-weight:700;font-family:Roboto,sans-serif';this.outerHTML='<span style=\'color:#E43733;font-size:18px;font-weight:700\'>FAGRON</span>'">
+  <div class="topbar-right">
+    <div class="metric-toggle">
+      <button class="metric-btn active" id="btn-cop"   onclick="setMetric('cop')">COP $</button>
+      <button class="metric-btn"        id="btn-units" onclick="setMetric('units')">Unidades</button>
+    </div>
+    <span class="topbar-date" id="status-info">Cargando datos…</span>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <span class="filter-label">🔍</span>
+
+  <select class="filter-select" id="f-year" onchange="applyFilters()">
+    <option value="">Todos los años</option>
+  </select>
+
+  <select class="filter-select" id="f-mes" onchange="applyFilters()">
+    <option value="">Todos los meses</option>
+  </select>
+
+  <select class="filter-select" id="f-zona" onchange="applyFilters()">
+    <option value="">Todas las zonas</option>
+    <option value="PERIFERIA">Periferia</option>
+    <option value="CENTRO">Centro</option>
+    <option value="MP">Materias Primas</option>
+    <option value="SAC">SAC</option>
+    <option value="OTROS">Otros</option>
+  </select>
+
+  <select class="filter-select" id="f-gerente" onchange="applyFilters()">
+    <option value="">Todos los gerentes</option>
+    <option value="ERIKA LOPEZ">Erika López</option>
+    <option value="BEATRIZ SALAS">Beatriz Salas</option>
+  </select>
+
+  <select class="filter-select" id="f-asesor" onchange="applyFilters()">
+    <option value="">Todos los asesores</option>
+  </select>
+
+  <select class="filter-select" id="f-linea" onchange="applyFilters()">
+    <option value="">Todas las líneas</option>
+  </select>
+
+  <button class="filter-reset" onclick="resetFilters()">✕ Limpiar</button>
+  <span class="filter-badge" id="filter-badge"></span>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showPage(0)">① Resumen</button>
+  <button class="tab"        onclick="showPage(1)">② Asesores</button>
+  <button class="tab"        onclick="showPage(2)">③ Zonas</button>
+  <button class="tab"        onclick="showPage(3)">④ Clientes</button>
+  <button class="tab"        onclick="showPage(4)">⑤ Productos</button>
+  <button class="tab"        onclick="showPage(5)">⑥ Especialidades</button>
+  <button class="tab"        onclick="showPage(6)">⑦ Colsubsidio</button>
+  <button class="tab"        onclick="showPage(7)">⑧ Inconsistencias</button>
+  <button class="tab"        onclick="showPage(8)">⑨ Forecast</button>
+  <button class="tab"        onclick="showPage(9)">⑩ Plan de Acción</button>
+  <button class="tab"        onclick="showPage(10)">⑪ Moléculas</button>
+</div>
+
+<div id="app-error"></div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 0 — RESUMEN EJECUTIVO
+     ════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-0">
+  <div class="section-hdr"><div class="bar"></div><h2>Resumen Ejecutivo</h2></div>
+  <div class="section-sub">Panorama general del negocio · Filtros activos aplicados a todas las vistas</div>
+  <div class="kpis" id="kpis-0">
+    <div class="spinner-wrap"><div class="spinner"></div>Cargando…</div>
+  </div>
+  <div class="g21">
+    <div class="card">
+      <div class="card-title">Evolución Anual de Ventas</div>
+      <div class="card-sub">COP · 2019–2026</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-yearly"></canvas></div>
+      <div class="insight"><strong>Tendencia 2019–2025:</strong> Crecimiento histórico sostenido. 2025 tuvo leve caída (-2.9% vs 2024). 2026 con momentum positivo (+4.1% YoY en Ene-Abr). <strong>Acción:</strong> Sostener aceleración H2 2026 con temporadas clave.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mix por Línea</div>
+      <div class="card-sub">Participación en ventas · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-line-pie"></canvas></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Comparativo Mensual YoY</div>
+      <div class="card-sub">Año seleccionado vs año anterior</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c-yoy"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Ventas por Zona</div>
+      <div class="card-sub">Año seleccionado · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c-zone-bar"></canvas></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Top 10 Productos</div>
+      <div class="card-sub" id="p0-prod-sub">Por familia · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:250px"><canvas id="c-top-prods"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 Clientes</div>
+      <div class="card-sub">Ventas acumuladas · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:250px"><canvas id="c-top-clients"></canvas></div>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="alert alert-r"><div class="alert-title" style="color:var(--red)">🔴 Crítico</div><div style="font-size:11px;line-height:1.6">2025 cerró -2.9% vs 2024. Diana Becerra cayó -53.3%. Alejandro Henao -19.6%. 11 asesores con múltiples zonas en el sistema.</div></div>
+    <div class="alert alert-a"><div class="alert-title" style="color:#b47e00">🟡 Importante</div><div style="font-size:11px;line-height:1.6">Valores negativos -$777M en Otras Actividades. Solo Colsubsidio reporta sell-out. Inconsistencias de clasificación por corregir.</div></div>
+    <div class="alert alert-g"><div class="alert-title" style="color:var(--green)">🟢 Oportunidad</div><div style="font-size:11px;line-height:1.6">Maira Acosta +130.2% YoY. Gisela Uribe +58.3%. Temporada solar (May–Ago) y Amor & Amistad (Sep) se aproximan.</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 1 — ASESORES
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-1">
+  <div class="section-hdr"><div class="bar"></div><h2>Asesores & Gerentes</h2></div>
+  <div class="section-sub">Desempeño individual · Ranking · Top 5 acciones por asesor</div>
+  <div class="kpis" id="kpis-1"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Ranking de Asesores</div>
+    <div class="card-sub">Ordenado por ventas · Crecimiento YoY incluido</div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead><tr>
+          <th>#</th><th>Asesor</th><th>Zona</th><th>Gerente</th>
+          <th id="adv-th-v">Ventas COP</th><th>Crec. YoY</th>
+          <th>Clientes</th><th>Top Producto</th><th>Part.</th>
+        </tr></thead>
+        <tbody id="adv-tbody"><tr><td colspan="9" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Tendencia Mensual por Asesor</div>
+      <div class="card-sub">Selecciona un asesor · 2025 vs 2026</div>
+      <select id="adv-select" style="width:100%;margin-bottom:10px;padding:6px;border-radius:4px;border:1px solid var(--silver);font-size:11px" onchange="onAdvisorSelect(this.value)">
+        <option value="">Selecciona un asesor…</option>
+      </select>
+      <div class="chart-wrap" style="height:190px"><canvas id="c-adv-monthly"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Comparativo Gerentes</div>
+      <div class="card-sub">Erika López (Periferia) vs Beatriz Salas (Centro+MP)</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="c-gerentes"></canvas></div>
+      <div class="insight amber-i"><strong>Erika López</strong> maneja Periferia. <strong>Beatriz Salas</strong> maneja Centro y MP. Los filtros activos afectan los totales de cada gerente.</div>
+    </div>
+  </div>
+  <div class="section-hdr" style="margin:4px 0 12px"><div class="bar"></div><h2 style="font-size:16px">Top 5 Acciones por Asesor — Basadas en Datos Reales</h2></div>
+  <div id="adv-actions-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px">
+    <div class="spinner-wrap"><div class="spinner"></div>Cargando acciones…</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 2 — ZONAS
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-2">
+  <div class="section-hdr"><div class="bar"></div><h2>Zonas, Ciudades & Territorios</h2></div>
+  <div class="section-sub">Distribución geográfica de ventas · Histórico y tendencia</div>
+  <div class="kpis" id="kpis-2"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Evolución por Zona</div>
+      <div class="card-sub">2023–2026 · Barras agrupadas</div>
+      <div class="chart-wrap" style="height:230px"><canvas id="c-zone-trend"></canvas></div>
+      <div class="insight">Periferia supera a Centro desde 2025. MP crece fuertemente (+130% YoY). <strong>Alerta:</strong> Centro cayó de $8.8B (2024) a $6.5B (2025).</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Participación por Zona</div>
+      <div class="card-sub">Año seleccionado · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c-zone-pie"></canvas></div>
+      <div class="chart-wrap" style="height:160px;margin-top:12px"><canvas id="c-zone-bar-p2"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 3 — CLIENTES
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-3">
+  <div class="section-hdr"><div class="bar"></div><h2>Análisis por Cliente</h2></div>
+  <div class="section-sub">Sell-In (compras a Fagron) · Sell-Out (solo Colsubsidio) · Todos los filtros aplicados</div>
+  <div class="kpis" id="kpis-3"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+
+  <div class="g21">
+    <div class="card">
+      <div class="card-title">Ranking de Clientes — Sell-In</div>
+      <div class="card-sub">Lo que cada cliente le compra a Fagron · Filtros aplicados</div>
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Cliente</th><th>Tipo</th><th id="client-th">Sell-In COP</th><th>Pedidos</th><th>%</th><th>Barra</th></tr></thead>
+          <tbody id="client-tbody"><tr><td colspan="7" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Segmentación por Tipo</div>
+        <div class="card-sub">Sell-In por tipo de cliente</div>
+        <div class="chart-wrap" style="height:170px"><canvas id="c-client-type"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Frecuencia de Compra</div>
+        <div class="card-sub">Pedidos por cliente top</div>
+        <div class="chart-wrap" style="height:145px"><canvas id="c-client-freq"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Sell-In Mensual — Top Clientes</div>
+    <div class="card-sub">Evolución mes a mes del sell-in (lo que Fagron vende a sus clientes)</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="c-sellin-sellout"></canvas></div>
+    <div class="insight amber-i" style="margin-top:10px">
+      <strong>Sell-In</strong> = lo que Fagron factura a cada cliente (los datos de los Excel DATA).<br>
+      <strong>Sell-Out</strong> = lo que el cliente vende al consumidor final. Solo disponible para Colsubsidio.
+      Ve a la pestaña <strong>⑦ Colsubsidio</strong> para ver el sell-out detallado por tienda.
+    </div>
+  </div>
+  <div id="sellout-note"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 4 — PRODUCTOS
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-4">
+  <div class="section-hdr"><div class="bar"></div><h2>Productos, Líneas & Familias</h2></div>
+  <div class="section-sub">Desempeño por familia y categoría · Todos los filtros aplicados</div>
+  <div class="kpis" id="kpis-4"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Top 15 Familias de Productos</div>
+      <div class="card-sub" id="prod-detail-sub">Acumulado periodo seleccionado</div>
+      <div class="chart-wrap" style="height:310px"><canvas id="c-family"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Participación por Línea</div>
+      <div class="card-sub">Donut + tabla detalle</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="c-line-donut"></canvas></div>
+      <div class="divider" style="height:1px;background:var(--light);margin:14px 0"></div>
+      <table class="tbl">
+        <thead><tr><th>Línea</th><th id="lt-v">Ventas COP</th><th>%</th></tr></thead>
+        <tbody id="line-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 5 — ESPECIALIDADES
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-5">
+  <div class="section-hdr"><div class="bar"></div><h2>Especialidades Médicas & Médicos</h2></div>
+  <div class="section-sub">Análisis de prescripción · Top médicos · Parrilla de visita · Filtros aplicados</div>
+  <div class="kpis" id="kpis-5"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Ventas por Especialidad</div>
+      <div class="card-sub">Top 10 especialidades · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-specs"></canvas></div>
+      <div class="insight"><strong>Dermatología domina</strong> con ~89% de ventas por especialidad. Canal de prescripción más importante.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 Médicos Prescriptores</div>
+      <div class="card-sub">Por ventas generadas · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-docs"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Parrilla Médica de Visita — Priorización por Datos</div>
+    <div class="card-sub">Top 20 médicos con prioridad de visita</div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead><tr><th>#</th><th>Médico</th><th>Especialidad</th><th id="doc-th">Ventas COP</th><th>Prioridad</th></tr></thead>
+        <tbody id="doc-tbody"><tr><td colspan="5" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="insight green-i" style="margin-top:12px"><strong>Acción mercadeo:</strong> Desarrollar argumentario científico diferencial para Minoxidil magistral vs genérico. Estos médicos son los que más impacto tienen en las ventas.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 6 — COLSUBSIDIO
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-6">
+  <div class="section-hdr"><div class="bar"></div><h2>Colsubsidio — Análisis Exclusivo</h2></div>
+  <div class="section-sub">Sell-out · Inventarios · Rotación · 2022–2026 · Filtro por Punto de Venta</div>
+
+  <div style="background:var(--dark);display:flex;align-items:center;gap:10px;padding:8px 16px;border-radius:6px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="color:var(--silver);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px">🏪 Filtrar por Tienda:</span>
+    <select class="filter-select" id="f-tienda" onchange="loadColsubsidio(this.value)" style="min-width:250px">
+      <option value="">Todas las tiendas</option>
+    </select>
+  </div>
+
+  <div class="kpis colsub-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    <div class="spinner-wrap" style="grid-column:1/-1"><div class="spinner"></div>Cargando…</div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Tendencia Sell-Out Mensual — Colsubsidio</div>
+    <div class="card-sub">Unidades vendidas al consumidor final · Mes a mes · Tienda seleccionada</div>
+    <div class="chart-wrap" style="height:200px"><canvas id="c-colsub-monthly"></canvas></div>
+    <div class="insight green-i">
+      <strong>Sell-Out</strong> = lo que Colsubsidio vende al consumidor final en sus puntos de venta.
+      Este es el indicador más importante de demanda real. Usar filtro de tienda para ver el detalle por punto de venta.
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Top Productos Sell-Out (Unidades)</div>
+      <div class="card-sub">Consumo real del cliente final · Tienda seleccionada</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-colsub-so"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Inventarios Colsubsidio (Unidades)</div>
+      <div class="card-sub">Stock disponible en puntos de venta</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-colsub-inv"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Análisis de Rotación — Sell-Out vs Inventario</div>
+    <div class="card-sub">Diagnóstico por producto</div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead><tr><th>Producto</th><th>Sell-Out (u)</th><th>Inventario (u)</th><th>Rotación</th><th>Estado</th></tr></thead>
+        <tbody id="colsub-rot-tbody"><tr><td colspan="5" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 7 — INCONSISTENCIAS
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-7">
+  <div class="section-hdr"><div class="bar"></div><h2>Inconsistencias Comerciales</h2></div>
+  <div class="section-sub">Datos mal clasificados o asignaciones incorrectas detectadas en el sistema</div>
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-lbl">Asesores multi-zona</div><div class="kpi-val red" id="incon-count">—</div><div class="kpi-note">Con ventas en más de 1 zona</div></div>
+    <div class="kpi gray"><div class="kpi-lbl">Sin zona asignada</div><div class="kpi-val green">0</div><div class="badge neutral">✓ OK</div></div>
+    <div class="kpi gray"><div class="kpi-lbl">Sin asesor asignado</div><div class="kpi-val green">0</div><div class="badge neutral">✓ OK</div></div>
+    <div class="kpi"><div class="kpi-lbl">Valores negativos</div><div class="kpi-val red">−$777M</div><div class="kpi-note">Otras Actividades 2025–2026</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Asesores con Múltiples Zonas Detectadas</div>
+      <div class="card-sub">Posible error de asignación — requiere validación con gerentes</div>
+      <div id="incon-list"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+      <div class="insight"><strong>Causa probable:</strong> Reasignación de clientes entre zonas sin actualizar histórico, o errores de captura. <strong>Acción:</strong> Validar con cada gerente y corregir en CRM antes del 31 de julio.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Otras Inconsistencias Detectadas</div>
+      <div class="card-sub">Campos, clasificación y datos</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <div class="alert alert-r"><div class="alert-title" style="color:var(--red)">🔴 OTRAS ACTIVIDADES: −$777M</div><div style="font-size:11px">Línea con valores negativos acumulados. Verificar si son notas crédito, devoluciones o errores contables.</div></div>
+        <div class="alert alert-a"><div class="alert-title" style="color:#b47e00">⚠️ CAMPO MÉDICOS DUPLICADO</div><div style="font-size:11px">Columnas "MEDICOS" y "MÉDICOS" (con tilde) contienen el mismo dato. Normalizar en el sistema origen.</div></div>
+        <div class="alert alert-a"><div class="alert-title" style="color:#b47e00">⚠️ "MAQUILA" vs "Maquila"</div><div style="font-size:11px">Línea con dos versiones de capitalización. Afecta filtros y agrupaciones.</div></div>
+        <div class="alert alert-g"><div class="alert-title" style="color:var(--green)">✅ SELL-OUT: Solo Colsubsidio</div><div style="font-size:11px">Solo 1 cliente reporta sell-out sistemáticamente. Implementar programa con top 10 clientes para obtener este dato.</div></div>
+        <div class="alert alert-b"><div class="alert-title" style="color:var(--blue)">💡 CIUDAD disponible en datos</div><div style="font-size:11px">El campo CIUDAD existe en los Excel y está disponible para análisis territorial granular por municipio.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 8 — FORECAST
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-8">
+  <div class="section-hdr"><div class="bar"></div><h2>Forecast & Tendencia 2026</h2></div>
+  <div class="section-sub">Proyección Mayo–Diciembre · Estacionalidad histórica 2023–2025 · 3 escenarios</div>
+  <div class="kpis" id="kpis-8"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Tendencia Real + Forecast Mensual 2026</div>
+    <div class="card-sub">Datos reales Ene–Abr vs proyección Mayo–Dic · Comparado con 2025</div>
+    <div class="chart-wrap" style="height:270px"><canvas id="c-forecast"></canvas></div>
+    <div class="insight green-i"><strong>Julio, Agosto y Septiembre</strong> son históricamente los meses más fuertes (>9% del año). Temporadas clave: Día de la Madre (mayo), Solar (may–ago), Amor & Amistad (sep), Black Friday (nov), Navidad (dic).</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Detalle Numérico Forecast Mayo–Diciembre 2026</div>
+    <div class="card-sub">3 escenarios · Basado en estacionalidad histórica</div>
+    <div class="fc-grid" id="fc-grid"><div class="spinner-wrap"><div class="spinner"></div>Calculando…</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 9 — PLAN DE ACCIÓN
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-9">
+  <div class="section-hdr"><div class="bar"></div><h2>Plan de Acción H2 2026</h2></div>
+  <div class="section-sub">Acciones basadas en datos reales · Asesores en caída vs en crecimiento · Meta: superar histórico 2024</div>
+  <div id="p9-content">
+    <div class="spinner-wrap"><div class="spinner"></div>Analizando datos…</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PAGE 10 — MOLÉCULAS
+     ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-10">
+  <div class="section-hdr"><div class="bar"></div><h2>Moléculas & Activos</h2></div>
+  <div class="section-sub">Comportamiento por molécula · Año a año · Mes a mes · Tendencias y oportunidades · Filtros aplicados</div>
+  <div class="kpis" id="kpis-10"><div class="spinner-wrap"><div class="spinner"></div>Cargando…</div></div>
+
+  <div class="g21">
+    <div class="card">
+      <div class="card-title">Ranking de Moléculas</div>
+      <div class="card-sub">Ordenado por ventas · Crecimiento YoY · Filtros aplicados</div>
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>Molécula / Familia</th><th>Línea</th><th>Ventas</th><th>%</th><th>Crec. YoY</th><th>Barra</th></tr></thead>
+          <tbody id="mol-tbody"><tr><td colspan="7" class="spinner-wrap"><div class="spinner"></div>Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Moléculas</div>
+      <div class="card-sub">Barras horizontales · Filtros aplicados</div>
+      <div class="chart-wrap" style="height:360px"><canvas id="c-mol-top"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Evolución Anual por Molécula</div>
+      <div class="card-sub">Top 6 moléculas · Tendencia año a año</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-mol-yearly"></canvas></div>
+      <div class="insight"><strong>Minoxidil</strong> lidera históricamente con tendencia alcista. ABSORB-K y Sunglass muestran crecimiento reciente. <strong>Oportunidad:</strong> moléculas con caída YoY requieren plan de recuperación médica.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tendencia Mensual por Molécula</div>
+      <div class="card-sub">Top 5 moléculas · Mes a mes año seleccionado</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-mol-monthly"></canvas></div>
+      <div class="insight amber-i"><strong>Estacionalidad:</strong> Sunglass y ABSORB-K tienen pico en May–Ago (solar). Minoxidil es constante todo el año. Las hormonas tienen variaciones por ciclos médicos.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const App = { metric:'cop', currentPage:0, filters:{year:'2026',mes:'',zona:'',gerente:'',asesor:'',linea:''} };
+
+// ── LOADED DATA ───────────────────────────────────────────────────────────────
+let D = null; // loaded from datos.json
+
+async function loadData() {
+  try {
+    const r = await fetch('datos.json');
+    D = await r.json();
+    document.getElementById('status-info').textContent =
+      `${D.yrows.reduce((s,r)=>s+r[1],0).toLocaleString()} registros · Años: ${D.meta.years.join(', ')}`;
+    populateFilters();
+    Pages.rebuild(0);
+  } catch(e) {
+    console.error('Error loading datos.json:', e);
+    document.getElementById('status-info').textContent = '⚠️ Error cargando datos';
+  }
+}
+
+function populateFilters() {
+  const yrSel = document.getElementById('f-year');
+  yrSel.innerHTML = '<option value="">Todos los años</option>';
+  D.meta.years.forEach(y => {
+    const o = document.createElement('option');
+    o.value=y; o.textContent=y; if(y===2026)o.selected=true;
+    yrSel.appendChild(o);
+  });
+
+  const mesSel = document.getElementById('f-mes');
+  mesSel.innerHTML = '<option value="">Todos los meses</option>';
+  D.meta.meses.forEach(m => {
+    const o = document.createElement('option');
+    o.value=m; o.textContent=m.charAt(0)+m.slice(1).toLowerCase();
+    mesSel.appendChild(o);
+  });
+
+  const asvSel = document.getElementById('f-asesor');
+  asvSel.innerHTML = '<option value="">Todos los asesores</option>';
+  D.meta.asesores.forEach(a => {
+    const o = document.createElement('option');
+    o.value=a; o.textContent=a.split(' ').slice(0,3).join(' ');
+    asvSel.appendChild(o);
+  });
+
+  const linSel = document.getElementById('f-linea');
+  linSel.innerHTML = '<option value="">Todas las líneas</option>';
+  D.meta.lineas.forEach(l => {
+    const o = document.createElement('option');
+    o.value=l; o.textContent=l.replace('MAGISTRALES ','Mag. ');
+    linSel.appendChild(o);
+  });
+
+  const advSel = document.getElementById('adv-select');
+  if(advSel){
+    advSel.innerHTML='<option value="">Selecciona asesor…</option>';
+    D.meta.asesores.forEach(a=>{
+      const o=document.createElement('option');
+      o.value=a; o.textContent=a.split(' ').slice(0,3).join(' ');
+      advSel.appendChild(o);
+    });
+  }
+}
+
+// ── FORMAT ────────────────────────────────────────────────────────────────────
+function fmt(v) {
+  if(v==null) return '—';
+  const n=parseFloat(v); if(isNaN(n))return'—';
+  if(App.metric==='units'){
+    if(n>=1e6)return(n/1e6).toFixed(1)+'M u';
+    if(n>=1e3)return Math.round(n/1e3)+'K u';
+    return Math.round(n)+' u';
+  }
+  if(n>=1e9)return'$'+(n/1e9).toFixed(1)+'B';
+  if(n>=1e6)return'$'+Math.round(n/1e6)+'M';
+  if(n>=1e3)return'$'+Math.round(n/1e3)+'K';
+  return'$'+Math.round(n);
+}
+function fmtPct(v){if(v==null)return'—';return(v>0?'+':'')+parseFloat(v).toFixed(1)+'%';}
+function getVal(row){return App.metric==='cop'?(row.v||0):(row.u||0);}
+function loadingStart(){const b=document.getElementById('loading-bar');if(b)b.className='loading-bar active';}
+function loadingDone(){const b=document.getElementById('loading-bar');if(b){b.className='loading-bar done';setTimeout(()=>b.className='loading-bar',600);}}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function applyFilters(){
+  ['year','mes','zona','gerente','asesor','linea'].forEach(k=>{
+    const el=document.getElementById('f-'+k); if(el)App.filters[k]=el.value;
+  });
+  const count=Object.values(App.filters).filter(x=>x).length;
+  const badge=document.getElementById('filter-badge');
+  badge.textContent=count+' filtro'+(count!==1?'s':'');
+  badge.className='filter-badge'+(count>0?' show':'');
+  Charts.destroyAll(); Pages.rebuild(App.currentPage);
+}
+function resetFilters(){
+  ['year','mes','zona','gerente','asesor','linea'].forEach(k=>{
+    const el=document.getElementById('f-'+k); if(el)el.value=k==='year'?'2026':'';
+  });
+  App.filters={year:'2026',mes:'',zona:'',gerente:'',asesor:'',linea:''};
+  document.getElementById('filter-badge').className='filter-badge';
+  Charts.destroyAll(); Pages.rebuild(App.currentPage);
+}
+function setMetric(m){
+  App.metric=m;
+  document.getElementById('btn-cop').classList.toggle('active',m==='cop');
+  document.getElementById('btn-units').classList.toggle('active',m==='units');
+  Charts.destroyAll(); Pages.rebuild(App.currentPage);
+}
+function showPage(n){
+  App.currentPage=n;
+  document.querySelectorAll('.page').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  Pages.rebuild(n);
+}
+
+// ── DATA FILTER HELPERS ───────────────────────────────────────────────────────
+// mrows: [yr,mn,zona,asesor,linea,v,u]
+function filterMrows(){
+  if(!D) return [];
+  return D.mrows.filter(r=>{
+    if(App.filters.year && r[0]!=parseInt(App.filters.year)) return false;
+    if(App.filters.mes  && D.meta.mes_names[r[1]]!==App.filters.mes) return false;
+    if(App.filters.zona && r[2]!==App.filters.zona) return false;
+    if(App.filters.asesor && r[3]!==App.filters.asesor) return false;
+    if(App.filters.linea && r[4]!==App.filters.linea) return false;
+    if(App.filters.gerente){const info=D.asesor_info[r[3]];if(!info||info.gerente!==App.filters.gerente)return false;}
+    return true;
+  });
+}
+// mall: [yr,mn,v,u]  — all asesores, for yearly/monthly totals
+function filterMall(){
+  if(!D) return [];
+  return D.mall.filter(r=>{
+    if(App.filters.year && r[0]!=parseInt(App.filters.year)) return false;
+    if(App.filters.mes  && D.meta.mes_names[r[1]]!==App.filters.mes) return false;
+    return true;
+  });
+}
+// prows: [yr,zona,asesor,linea,familia,v,u]
+function filterProws(){
+  if(!D) return [];
+  return D.prows.filter(r=>{
+    if(App.filters.year && r[0]!=parseInt(App.filters.year)) return false;
+    if(App.filters.zona && r[1]!==App.filters.zona) return false;
+    if(App.filters.asesor && r[2]!==App.filters.asesor) return false;
+    if(App.filters.linea && r[3]!==App.filters.linea) return false;
+    if(App.filters.gerente){const info=D.asesor_info[r[2]];if(!info||info.gerente!==App.filters.gerente)return false;}
+    if(App.filters.mes) return true; // mes doesn't filter products
+    return true;
+  });
+}
+// crows: [yr,zona,asesor,cliente,tipo,v,u,pedidos]
+function filterCrows(){
+  if(!D) return [];
+  return D.crows.filter(r=>{
+    if(App.filters.year && r[0]!=parseInt(App.filters.year)) return false;
+    if(App.filters.zona && r[1]!==App.filters.zona) return false;
+    if(App.filters.asesor && r[2]!==App.filters.asesor) return false;
+    if(App.filters.gerente){const info=D.asesor_info[r[2]];if(!info||info.gerente!==App.filters.gerente)return false;}
+    return true;
+  });
+}
+// zrows: [yr,zona,v,u]
+function filterZrows(){
+  if(!D) return [];
+  return D.zrows.filter(r=>{
+    if(App.filters.year && r[0]!=parseInt(App.filters.year)) return false;
+    if(App.filters.zona && r[1]!==App.filters.zona) return false;
+    return true;
+  });
+}
+
+// Aggregate helpers
+function sumMrows(rows){ return rows.reduce((s,r)=>{s.v+=r[5];s.u+=r[6];return s;},{v:0,u:0}); }
+function groupBy(rows, keyFn, valFn){
+  const m={};
+  rows.forEach(r=>{const k=keyFn(r);if(!m[k])m[k]={v:0,u:0};const vv=valFn(r);m[k].v+=vv[0];m[k].u+=vv[1];});
+  return m;
+}
+function topN(obj, n=15){
+  return Object.entries(obj).map(([k,v])=>({key:k,...v})).sort((a,b)=>b.v-a.v).slice(0,n);
+}
+function getMesName(mn){ return D&&D.meta.mes_names?D.meta.mes_names[mn]:mn; }
+
+document.addEventListener('DOMContentLoaded', loadData);
+
+</script>
+<script>
+/**
+ * charts.js — Todas las gráficas del dashboard
+ * Usa Chart.js 4.x
+ */
+
+const Charts = (() => {
+  const _charts = {};
+
+  const RED = '#E43733', GRAY = '#9C9E9F', DARK = '#4B4B4B';
+  const SILVER = '#C6C7C8', SALMON = '#F5AA9A';
+  const GREEN = '#27AE60', AMBER = '#F39C12', BLUE = '#1a73e8';
+
+  const LINE_COLORS = {
+    'MAGISTRALES ORALES':   RED,
+    'MAGISTRALES TOPICAS':  SALMON,
+    'COSMETICOS':           AMBER,
+    'ACTIVOS':              GREEN,
+    'OTRAS VENTAS':         GRAY,
+    'MAQUILA':              SILVER,
+  };
+
+  function lineColor(linea) {
+    return LINE_COLORS[linea] || GRAY;
+  }
+
+  function productColor(prod) {
+    if (!prod) return GRAY;
+    const p = prod.toUpperCase();
+    if (p.includes('MINOXIDIL')) return RED;
+    if (p.includes('ABSORB'))   return AMBER;
+    if (p.includes('SUNGLASS') || p.includes('FRESH SKIN')) return AMBER;
+    if (p.includes('ACTIVOS'))  return GREEN;
+    return SALMON;
+  }
+
+  const BASE = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => fmt(ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed) } },
+    },
+    scales: {
+      y: { ticks: { callback: v => fmt(v) }, grid: { color: '#f0f0f0' } },
+      x: { grid: { display: false } },
+    },
+  };
+
+  const DONUT = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: true, position: 'right', labels: { font: { size: 10 }, boxWidth: 12 } } },
+    scales: {},
+  };
+
+  function mk(id, type, data, opts = {}) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+    const fresh = document.createElement('canvas');
+    fresh.id = id;
+    canvas.parentNode.replaceChild(fresh, canvas);
+    _charts[id] = new Chart(fresh, { type, data, options: { responsive: true, maintainAspectRatio: false, ...opts } });
+    return _charts[id];
+  }
+
+  function destroyAll() {
+    Object.values(_charts).forEach(c => { try { c.destroy(); } catch (e) {} });
+    Object.keys(_charts).forEach(k => delete _charts[k]);
+  }
+
+  // ── Yearly bar ──────────────────────────────────────────────────────────────
+  function yearly(id, data) {
+    if (!data || !data.length) return;
+    mk(id, 'bar', {
+      labels: data.map(d => d.yr),
+      datasets: [{
+        data: data.map(d => getVal(d)),
+        backgroundColor: data.map(d => d.yr === 2026 ? GREEN : d.yr === 2025 ? AMBER : RED),
+        borderRadius: 4,
+      }],
+    }, {
+      ...BASE,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.parsed.y) } } },
+    });
+  }
+
+  // ── Monthly line comparison ─────────────────────────────────────────────────
+  function monthlyComparison(id, monthly, yr1, yr2) {
+    if (!monthly || !monthly.length) return;
+    const MES_ORDER = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+    const get = (yr, mes) => { const r = monthly.find(d => d.yr === yr && d.mes === mes); return r ? getVal(r) : null; };
+    const labels = MES_ORDER.filter(m => monthly.some(d => d.yr === yr2 && d.mes === m));
+    mk(id, 'line', {
+      labels: labels.map(m => m.slice(0, 3)),
+      datasets: [
+        { label: String(yr1), data: labels.map(m => get(yr1, m)), borderColor: SILVER, borderDash: [4, 4], tension: 0.3, borderWidth: 1.5, pointRadius: 3, fill: false },
+        { label: String(yr2), data: labels.map(m => get(yr2, m)), borderColor: RED, tension: 0.3, borderWidth: 2.5, pointRadius: 4, fill: false },
+      ],
+    }, {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { font: { size: 10 }, boxWidth: 10 } }, tooltip: { callbacks: { label: ctx => ctx.parsed.y != null ? fmt(ctx.parsed.y) : '' } } },
+      scales: { y: { ticks: { callback: v => fmt(v) }, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } },
+    });
+  }
+
+  // ── Monthly trend (single series) ──────────────────────────────────────────
+  function monthlyTrend(id, monthly) {
+    if (!monthly || !monthly.length) return;
+    const sorted = [...monthly].sort((a, b) => a.yr - b.yr || a.mn - b.mn);
+    mk(id, 'line', {
+      labels: sorted.map(d => d.mes.slice(0, 3) + ' ' + String(d.yr).slice(2)),
+      datasets: [{ data: sorted.map(d => getVal(d)), borderColor: RED, tension: 0.3, borderWidth: 2, pointRadius: 3, fill: false }],
+    }, BASE);
+  }
+
+  // ── Zone bar (horizontal) ────────────────────────────────────────────────────
+  function zoneBar(id, zones) {
+    if (!zones || !zones.length) return;
+    const colorMap = { PERIFERIA: RED, CENTRO: DARK, MP: GREEN };
+    mk(id, 'bar', {
+      labels: zones.map(z => z.zona),
+      datasets: [{ data: zones.map(z => getVal(z)), backgroundColor: zones.map(z => colorMap[z.zona] || GRAY), borderRadius: 4 }],
+    }, { ...BASE, indexAxis: 'y', scales: { x: { ticks: { callback: v => fmt(v) }, grid: { color: '#f0f0f0' } }, y: { grid: { display: false } } } });
+  }
+
+  // ── Donut ───────────────────────────────────────────────────────────────────
+  function donut(id, labels, values, colors) {
+    mk(id, 'doughnut', {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }],
+    }, DONUT);
+  }
+
+  // ── Line mix donut ───────────────────────────────────────────────────────────
+  function lineMix(id, lines) {
+    if (!lines || !lines.length) return;
+    donut(id, lines.map(l => l.linea.replace('MAGISTRALES ', 'Mag. ')), lines.map(l => getVal(l)), lines.map(l => lineColor(l.linea)));
+  }
+
+  // ── Top products (horizontal bar) ───────────────────────────────────────────
+  function topProducts(id, prods) {
+    if (!prods || !prods.length) return;
+    mk(id, 'bar', {
+      labels: prods.map(p => p.familia),
+      datasets: [{ data: prods.map(p => getVal(p)), backgroundColor: prods.map(p => productColor(p.familia)), borderRadius: 3 }],
+    }, { ...BASE, indexAxis: 'y', scales: { x: { ticks: { callback: v => fmt(v) }, grid: { color: '#f0f0f0' } }, y: { grid: { display: false } } } });
+  }
+
+  // ── Top clients (horizontal bar) ─────────────────────────────────────────────
+  function topClients(id, clients) {
+    if (!clients || !clients.length) return;
+    mk(id, 'bar', {
+      labels: clients.map(c => c.cliente.length > 22 ? c.cliente.slice(0, 20) + '…' : c.cliente),
+      datasets: [{ data: clients.map(c => getVal(c)), backgroundColor: RED, borderRadius: 3 }],
+    }, { ...BASE, indexAxis: 'y', scales: { x: { ticks: { callback: v => fmt(v) }, grid: { color: '#f0f0f0' } }, y: { grid: { display: false } } } });
+  }
+
+  // ── Advisor monthly (line) ──────────────────────────────────────────────────
+  function advisorMonthly(id, data25, data26) {
+    const MES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+    const get25 = m => data25 && data25[m] ? (App.metric === 'cop' ? data25[m].v : data25[m].u) : null;
+    const get26 = m => data26 && data26[m] ? (App.metric === 'cop' ? data26[m].v : data26[m].u) : null;
+    mk(id, 'line', {
+      labels: MES.map(m => m.slice(0, 3)),
+      datasets: [
+        { label: '2025', data: MES.map(get25), borderColor: SILVER, borderDash: [4, 4], tension: 0.3, borderWidth: 1.5, pointRadius: 3, fill: false },
+        { label: '2026', data: MES.map(get26), borderColor: RED, tension: 0.3, borderWidth: 2.5, pointRadius: 4, fill: false },
+      ],
+    }, {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { font: { size: 10 }, boxWidth: 10 } }, tooltip: { callbacks: { label: ctx => ctx.parsed.y != null ? fmt(ctx.parsed.y) : '' } } },
+      scales: { y: { ticks: { callback: v => fmt(v) }, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } },
+    });
+  }
+
+  // ── Zone trend (grouped bar) ─────────────────────────────────────────────────
+  function zoneTrend(id, zoneData) {
+    if (!zoneData || !zoneData.length) return;
+    const years  = [...new Set(zoneData.map(d => d.yr))].sort();
+    const zones  = [...new Set(zoneData.map(d => d.zona))];
+    const cmap   = { PERIFERIA: RED, CENTRO: DARK, MP: GREEN };
+    mk(id, 'bar', {
+      labels: years.map(String),
+      datasets: zones.map(z => ({
+        label: z,
+        data: years.map(yr => { const r = zoneData.find(d => d.zona === z && d.yr === yr); return r ? getVal(r) : 0; }),
+        backgroundColor: cmap[z] || GRAY,
+        borderRadius: 2,
+      })),
+    }, {
+      ...BASE,
+      plugins: { legend: { display: true, labels: { font: { size: 10 }, boxWidth: 10 } }, tooltip: { callbacks: { label: ctx => fmt(ctx.parsed.y) } } },
+    });
+  }
+
+  // ── Specialties bar ─────────────────────────────────────────────────────────
+  function specialties(id, data) {
+    if (!data || !data.length) return;
+    mk(id, 'bar', {
+      labels: data.map(s => s.esp.length > 20 ? s.esp.slice(0, 18) + '…' : s.esp),
+      datasets: [{ data: data.map(s => getVal(s)), backgroundColor: [RED, SALMON, AMBER, GREEN, GRAY, SILVER], borderRadius: 3 }],
+    }, { ...BASE, indexAxis: 'y', scales: { x: { ticks: { callback: v => fmt(v) }, grid: { color: '#f0f0f0' } }, y: { grid: { display: false } } } });
+  }
+
+  // ── Forecast line ────────────────────────────────────────────────────────────
+  function forecast(id, monthly, forecastData) {
+    const MES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+    const MES_FULL = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+    const real25 = MES_FULL.map(m => { const r = monthly.find(d => d.yr === 2025 && d.mes === m); return r ? getVal(r) : null; });
+    const real26 = MES_FULL.map(m => { const r = monthly.find(d => d.yr === 2026 && d.mes === m); return r ? getVal(r) : null; });
+    const fc_c   = MES_FULL.map(m => { const r = forecastData.find(d => d.mes === m); return r ? r.conservador : null; });
+    const fc_e   = MES_FULL.map(m => { const r = forecastData.find(d => d.mes === m); return r ? r.esperado    : null; });
+    const fc_a   = MES_FULL.map(m => { const r = forecastData.find(d => d.mes === m); return r ? r.acelerado   : null; });
+
+    mk(id, 'line', {
+      labels: MES,
+      datasets: [
+        { label: '2025',       data: real25, borderColor: SILVER, borderDash: [3,3], tension: 0.3, borderWidth: 1.5, pointRadius: 2, fill: false },
+        { label: '2026 Real',  data: real26, borderColor: RED,    tension: 0.3, borderWidth: 2.5, pointRadius: 4, fill: false },
+        { label: 'Conserv.',   data: fc_c,   borderColor: GRAY,   borderDash: [5,5], tension: 0.3, borderWidth: 1.5, pointRadius: 3, fill: false },
+        { label: 'Esperado',   data: fc_e,   borderColor: DARK,   tension: 0.3, borderWidth: 2, pointRadius: 3, fill: false },
+        { label: 'Acelerado',  data: fc_a,   borderColor: GREEN,  tension: 0.3, borderWidth: 2.5, pointRadius: 3, fill: false },
+      ],
+    }, {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { font: { size: 10 }, boxWidth: 12 } }, tooltip: { callbacks: { label: ctx => ctx.parsed.y != null ? fmt(ctx.parsed.y) : '' } } },
+      scales: { y: { ticks: { callback: v => fmt(v) }, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } },
+    });
+  }
+
+  // ── Colsubsidio bars ─────────────────────────────────────────────────────────
+  function colsubSO(id, data) {
+    if (!data || !data.length) return;
+    mk(id, 'bar', {
+      labels: data.map(d => d.DESCRIPCION.length > 20 ? d.DESCRIPCION.slice(0, 18) + '…' : d.DESCRIPCION),
+      datasets: [{ data: data.map(d => d.unidades), backgroundColor: [RED, ...Array(14).fill(SALMON)], borderRadius: 3 }],
+    }, {
+      ...BASE,
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => (ctx.parsed.x || 0).toLocaleString() + ' u' } } },
+      scales: { x: { ticks: { callback: v => v.toLocaleString() }, grid: { color: '#f0f0f0' } }, y: { grid: { display: false } } },
+    });
+  }
+
+  function colsubInv(id, data) {
+    if (!data || !data.length) return;
+    mk(id, 'bar', {
+      labels: data.map(d => d.DESCRIPCION.length > 18 ? d.DESCRIPCION.slice(0, 16) + '…' : d.DESCRIPCION),
+      datasets: [{ data: data.map(d => d.inventario), backgroundColor: DARK, borderRadius: 3 }],
+    }, {
+      ...BASE,
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => (ctx.parsed.x || 0).toLocaleString() + ' u' } } },
+      scales: { x: { ticks: { callback: v => v.toLocaleString() }, grid: { color: '#f0f0f0' } }, y: { grid: { display: false } } },
+    });
+  }
+
+  // ── Gerentes comparison ─────────────────────────────────────────────────────
+  function gerentes(id, advisors) {
+    if (!advisors || !advisors.length) return;
+    const gMap = {};
+    advisors.forEach(a => {
+      const g = a.gerente;
+      if (!gMap[g]) gMap[g] = { v: 0, u: 0 };
+      gMap[g].v += a.v || 0;
+      gMap[g].u += a.u || 0;
+    });
+    const data = Object.entries(gMap)
+      .filter(([g]) => g === 'ERIKA LOPEZ' || g === 'BEATRIZ SALAS')
+      .map(([g, vals]) => ({ g, v: vals.v, u: vals.u }))
+      .sort((a, b) => b.v - a.v);
+
+    mk(id, 'bar', {
+      labels: data.map(d => [d.g.split(' ')[0] + ' ' + d.g.split(' ')[1], d.g.includes('ERIKA') ? 'Periferia' : 'Centro+MP']),
+      datasets: [{ data: data.map(d => getVal(d)), backgroundColor: data.map(d => d.g === 'ERIKA LOPEZ' ? RED : DARK), borderRadius: 4, barPercentage: 0.5 }],
+    }, {
+      ...BASE,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.parsed.y) } } },
+    });
+  }
+
+  // ── Clients type donut ──────────────────────────────────────────────────────
+  function clientType(id, clients) {
+    if (!clients || !clients.length) return;
+    const tipos = [
+      { t: 'CORPORATIVO',             c: RED   },
+      { t: 'LOGISTICO/INSTITUCIONES', c: DARK  },
+      { t: 'PARTICULAR',              c: AMBER },
+      { t: 'OTROS',                   c: GRAY  },
+    ];
+    donut(id,
+      tipos.map(t => t.t.split('/')[0]),
+      tipos.map(t => clients.filter(c => c.tipo === t.t).reduce((s, c) => s + getVal(c), 0)),
+      tipos.map(t => t.c)
+    );
+  }
+
+  // ── Client frequency bar ────────────────────────────────────────────────────
+  function clientFreq(id, clients) {
+    if (!clients || !clients.length) return;
+    const top = clients.slice(0, 6);
+    mk(id, 'bar', {
+      labels: top.map(c => c.cliente.length > 16 ? c.cliente.slice(0, 14) + '…' : c.cliente),
+      datasets: [{ data: top.map(c => c.pedidos || 0), backgroundColor: SALMON, borderRadius: 3 }],
+    }, {
+      ...BASE,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => (ctx.parsed.y || 0).toLocaleString() + ' pedidos' } } },
+      scales: { y: { ticks: { callback: v => v.toLocaleString() }, grid: { color: '#f0f0f0' } }, x: { grid: { display: false } } },
+    });
+  }
+
+  return {
+    yearly, monthlyComparison, monthlyTrend,
+    zoneBar, zoneTrend,
+    donut, lineMix, topProducts, topClients,
+    advisorMonthly, gerentes,
+    specialties, forecast,
+    colsubSO, colsubInv,
+    clientType, clientFreq,
+    destroyAll,
+  };
+})();
+
+// ── Sell-In vs Sell-Out monthly (stacked/grouped bar) ─────────────────────────
+Charts.sellInOutMonthly = function(id, clientsMonthly) {
+  if(!clientsMonthly||!clientsMonthly.length) return;
+  const MES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const yr=App.filters.year?parseInt(App.filters.year):2026;
+  // Sum all clients per month
+  const byMonth={};
+  clientsMonthly.filter(r=>r.yr===yr).forEach(r=>{
+    if(!byMonth[r.mes]) byMonth[r.mes]={v:0,u:0};
+    byMonth[r.mes].v+=r.v; byMonth[r.mes].u+=r.u;
+  });
+  const avail=MES.filter(m=>byMonth[m]);
+  mk(id,'bar',{
+    labels:avail.map(m=>m.slice(0,3)),
+    datasets:[{
+      label:'Sell-In COP',
+      data:avail.map(m=>App.metric==='cop'?byMonth[m].v:byMonth[m].u),
+      backgroundColor:'#1a73e8',borderRadius:3
+    }]
+  },{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{font:{size:10},boxWidth:10}},tooltip:{callbacks:{label:ctx=>fmt(ctx.parsed.y)}}},
+    scales:{y:{ticks:{callback:v=>fmt(v)},grid:{color:'#f0f0f0'}},x:{grid:{display:false}}}});
+};
+
+// ── Colsubsidio monthly sell-out ───────────────────────────────────────────────
+Charts.colsubMonthly = function(id, monthly_so) {
+  if(!monthly_so||!monthly_so.length) return;
+  const sorted=[...monthly_so].sort((a,b)=>a.yr-b.yr||a.mn-b.mn);
+  mk(id,'line',{
+    labels:sorted.map(d=>d.mes.slice(0,3)+' '+String(d.yr).slice(2)),
+    datasets:[{label:'Sell-Out (u)',data:sorted.map(d=>d.so),borderColor:'#E43733',backgroundColor:'#E4373322',tension:0.3,borderWidth:2,pointRadius:3,fill:true}]
+  },{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{font:{size:10},boxWidth:10}},tooltip:{callbacks:{label:ctx=>ctx.parsed.y.toLocaleString()+' u'}}},
+    scales:{y:{ticks:{callback:v=>v.toLocaleString()},grid:{color:'#f0f0f0'}},x:{grid:{display:false},ticks:{maxTicksLimit:12}}}});
+};
+
+// ── Molecule yearly (multi-line) ───────────────────────────────────────────────
+Charts.moleculeYearly = function(id, yearly, topMols) {
+  if(!yearly||!yearly.length||!topMols||!topMols.length) return;
+  const years=[...new Set(yearly.map(d=>d.yr))].sort();
+  const COLS=['#E43733','#1a73e8','#27AE60','#F39C12','#9C9E9F','#F5AA9A'];
+  mk(id,'line',{
+    labels:years.map(String),
+    datasets:topMols.map((mol,i)=>({
+      label:mol.length>16?mol.slice(0,14)+'…':mol,
+      data:years.map(yr=>{const r=yearly.find(d=>d.familia===mol&&d.yr===yr);return r?(App.metric==='cop'?r.v:r.u):0;}),
+      borderColor:COLS[i%COLS.length],tension:0.3,borderWidth:2,pointRadius:3,fill:false
+    }))
+  },{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'right',labels:{font:{size:9},boxWidth:10}}},
+    scales:{y:{ticks:{callback:v=>fmt(v)},grid:{color:'#f0f0f0'}},x:{grid:{display:false}}}});
+};
+
+// ── Molecule monthly (multi-line) ─────────────────────────────────────────────
+Charts.moleculeMonthly = function(id, monthly, topMols) {
+  if(!monthly||!monthly.length||!topMols||!topMols.length) return;
+  const yr=App.filters.year?parseInt(App.filters.year):2026;
+  const data=monthly.filter(d=>d.yr===yr);
+  const MES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const avail=MES.filter(m=>data.some(d=>d.mes===m));
+  const COLS=['#E43733','#1a73e8','#27AE60','#F39C12','#9C9E9F'];
+  mk(id,'line',{
+    labels:avail.map(m=>m.slice(0,3)),
+    datasets:topMols.map((mol,i)=>({
+      label:mol.length>14?mol.slice(0,12)+'…':mol,
+      data:avail.map(m=>{const r=data.find(d=>d.familia===mol&&d.mes===m);return r?(App.metric==='cop'?r.v:r.u):0;}),
+      borderColor:COLS[i%COLS.length],tension:0.3,borderWidth:2,pointRadius:3,fill:false
+    }))
+  },{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'right',labels:{font:{size:9},boxWidth:10}}},
+    scales:{y:{ticks:{callback:v=>fmt(v)},grid:{color:'#f0f0f0'}},x:{grid:{display:false}}}});
+};
+
+</script>
+<script>
+const ADV_MONTHLY = {
+  'JUAN DAVID LOAIZA':        {y25:{ENERO:201205160,FEBRERO:203334113,MARZO:216503714,ABRIL:194975778,MAYO:224558887,JUNIO:216643538,JULIO:239107651,AGOSTO:216832503,SEPTIEMBRE:242946694,OCTUBRE:224168491,NOVIEMBRE:226041753,DICIEMBRE:206608522},y26:{ENERO:235239425,FEBRERO:217912590,MARZO:199000083,ABRIL:235887142}},
+  'JUAN GUILLERMO GUTIERREZ': {y25:{ENERO:211269822,FEBRERO:145137519,MARZO:152506469,ABRIL:198151689,MAYO:176877767,JUNIO:142571754,JULIO:207304848,AGOSTO:124593608,SEPTIEMBRE:158141100,OCTUBRE:164467752,NOVIEMBRE:147757858,DICIEMBRE:153095761},y26:{ENERO:190290132,FEBRERO:145349331,MARZO:150643142,ABRIL:175585901}},
+  'NICOLAS MUNERA':           {y25:{ENERO:144657086,FEBRERO:181868865,MARZO:132166723,ABRIL:136975943,MAYO:114777215,JUNIO:188761257,JULIO:127613332,AGOSTO:96056784,SEPTIEMBRE:147876962,OCTUBRE:98311785,NOVIEMBRE:104426237,DICIEMBRE:83124012},y26:{ENERO:138623669,FEBRERO:132191529,MARZO:189457322,ABRIL:165777820}},
+  'DIANA BECERRA':            {y25:{ENERO:182623314,FEBRERO:257697198,MARZO:113233335,ABRIL:252299640,MAYO:108131033,JUNIO:47255055,JULIO:141097851,AGOSTO:252832995,SEPTIEMBRE:214557693,OCTUBRE:80639431,NOVIEMBRE:0,DICIEMBRE:53411374},y26:{ENERO:99499041,FEBRERO:91488459,MARZO:127505447,ABRIL:58029080}},
+  'GISELA URIBE':             {y25:{ENERO:71474892,FEBRERO:96451039,MARZO:102670339,ABRIL:89783782,MAYO:99071803,JUNIO:109134188,JULIO:138376540,AGOSTO:141728656,SEPTIEMBRE:128164233,OCTUBRE:119462807,NOVIEMBRE:125303212,DICIEMBRE:141917552},y26:{ENERO:143484909,FEBRERO:140002052,MARZO:129270562,ABRIL:157558220}},
+  'MALKA MARTINLEYES':        {y25:{ENERO:86306664,FEBRERO:82195519,MARZO:82264688,ABRIL:113938335,MAYO:110755607,JUNIO:99153156,JULIO:125139796,AGOSTO:104792292,SEPTIEMBRE:112407637,OCTUBRE:124264806,NOVIEMBRE:88605319,DICIEMBRE:124533899},y26:{ENERO:122148798,FEBRERO:117634551,MARZO:116447104,ABRIL:119563347}},
+  'LUISA FERNANDA TORRES':    {y25:{ENERO:99452556,FEBRERO:86023814,MARZO:100403385,ABRIL:81918074,MAYO:82888591,JUNIO:88107935,JULIO:114022786,AGOSTO:123489668,SEPTIEMBRE:103366783,OCTUBRE:101356362,NOVIEMBRE:78955144,DICIEMBRE:93698785},y26:{ENERO:104976818,FEBRERO:118122715,MARZO:105575801,ABRIL:124159332}},
+  'CRISTINA TAVERA':          {y25:{ENERO:100502782,FEBRERO:106046028,MARZO:83358620,ABRIL:93229929,MAYO:113045366,JUNIO:93327062,JULIO:98002805,AGOSTO:93740395,SEPTIEMBRE:125264116,OCTUBRE:102236888,NOVIEMBRE:83838797,DICIEMBRE:100351223},y26:{ENERO:97658848,FEBRERO:91688207,MARZO:95567201,ABRIL:109271435}},
+  'MARLY PAOLA BOLAÑO SUAREZ':{y25:{ENERO:61909876,FEBRERO:55691589,MARZO:85295793,ABRIL:84013818,MAYO:86679028,JUNIO:56669896,JULIO:105048993,AGOSTO:73826177,SEPTIEMBRE:99997159,OCTUBRE:75829498,NOVIEMBRE:66770245,DICIEMBRE:74493593},y26:{ENERO:79141950,FEBRERO:89093804,MARZO:115646905,ABRIL:85435592}},
+  'ALEJANDRO HENAO':          {y25:{ENERO:84382386,FEBRERO:110098614,MARZO:63218274,ABRIL:62012161,MAYO:80117863,JUNIO:41901973,JULIO:54174735,AGOSTO:36588831,SEPTIEMBRE:43235983,OCTUBRE:53235703,NOVIEMBRE:30154453,DICIEMBRE:53839895},y26:{ENERO:64552009,FEBRERO:30236800,MARZO:110619502,ABRIL:51592875}},
+  'JESSICA GONZALEZ':         {y25:{ENERO:53745095,FEBRERO:45990743,MARZO:55442041,ABRIL:33298052,MAYO:40276446,JUNIO:43537907,JULIO:56097247,AGOSTO:52506711,SEPTIEMBRE:53588202,OCTUBRE:64079796,NOVIEMBRE:78459704,DICIEMBRE:81273128},y26:{ENERO:51178239,FEBRERO:71378819,MARZO:63043860,ABRIL:105612117}},
+  'NANCY CAICEDO':            {y25:{ENERO:66346148,FEBRERO:45235124,MARZO:47511157,ABRIL:68016570,MAYO:55454106,JUNIO:50189101,JULIO:72498238,AGOSTO:64956247,SEPTIEMBRE:67038396,OCTUBRE:45091201,NOVIEMBRE:36749721,DICIEMBRE:61146605},y26:{ENERO:51391635,FEBRERO:54885456,MARZO:72556003,ABRIL:61904723}},
+  'MAIRA ACOSTA':             {y25:{ENERO:23341133,FEBRERO:13048611,MARZO:89561150,ABRIL:34044984,MAYO:97191649,JUNIO:55255415,JULIO:140058673,AGOSTO:104418087,SEPTIEMBRE:80838684,OCTUBRE:140538903,NOVIEMBRE:50286729,DICIEMBRE:79733411},y26:{ENERO:100424336,FEBRERO:69146528,MARZO:129811916,ABRIL:68941912}},
+};
+
+const Pages = (()=>{
+  const _built={};
+  function rebuild(n){delete _built[n];build(n);}
+  async function build(n){
+    if(_built[n]||!D)return; _built[n]=true; loadingStart();
+    try{
+      if(n===0)buildP0(); if(n===1)buildP1(); if(n===2)buildP2();
+      if(n===3)buildP3(); if(n===4)buildP4(); if(n===5)buildP5();
+      if(n===6)buildP6(); if(n===7)buildP7(); if(n===8)buildP8();
+      if(n===9)buildP9(); if(n===10)buildP10();
+    }catch(e){console.error(e);}
+    loadingDone();
+  }
+
+  function badge(p){const v=parseFloat(p),c=v>=0?'up':'down',i=v>=0?'▲':'▼';return`<span class="badge ${c}">${i} ${fmtPct(p)}</span>`;}
+  function pillZ(z){const c=z==='PERIFERIA'?'pill-p':z==='CENTRO'?'pill-c':z==='MP'?'pill-m':'pill-s';return`<span class="pill ${c}">${z}</span>`;}
+  function rBar(p){return`<td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${Math.max(p,1)}%"></div></div></td>`;}
+  function spin(){return'<div class="spinner-wrap"><div class="spinner"></div>Cargando…</div>';}
+
+  // ── P0 RESUMEN ──────────────────────────────────────────────────────────────
+  function buildP0(){
+    const yr=parseInt(App.filters.year)||2026;
+    const filtered=filterMrows();
+    const totals=sumMrows(filtered);
+    const val=App.metric==='cop'?totals.v:totals.u;
+
+    // YoY comparison
+    const prevYr=yr-1;
+    const curMns=new Set(filterMrows().filter(r=>r[0]===yr).map(r=>r[1]));
+    const prevFiltered=D.mrows.filter(r=>{
+      if(r[0]!==prevYr)return false;
+      if(!curMns.has(r[1]))return false;
+      if(App.filters.zona&&r[2]!==App.filters.zona)return false;
+      if(App.filters.asesor&&r[3]!==App.filters.asesor)return false;
+      if(App.filters.linea&&r[4]!==App.filters.linea)return false;
+      if(App.filters.gerente){const info=D.asesor_info[r[3]];if(!info||info.gerente!==App.filters.gerente)return false;}
+      return true;
+    });
+    const prevTot=sumMrows(prevFiltered);
+    const prevVal=App.metric==='cop'?prevTot.v:prevTot.u;
+    const growth=prevVal>0?((val-prevVal)/prevVal*100).toFixed(1):0;
+
+    // Top asesor
+    const byAsesor=groupBy(filtered,r=>r[3],r=>[r[5],r[6]]);
+    const topA=topN(byAsesor,1)[0]||{key:'—',v:0,u:0};
+
+    // Top product
+    const byProd=groupBy(filterProws(),r=>r[4],r=>[r[5],r[6]]);
+    const topP=topN(byProd,1)[0]||{key:'—',v:0,u:0};
+
+    document.getElementById('kpis-0').innerHTML=`
+      <div class="kpi"><div class="kpi-lbl">Ventas ${yr}${App.filters.mes?' · '+App.filters.mes.slice(0,3):''}</div>
+        <div class="kpi-val red">${fmt(val)}</div>${badge(growth)}</div>
+      <div class="kpi green"><div class="kpi-lbl">Top Asesor</div>
+        <div class="kpi-val green" style="font-size:14px">${topA.key.split(' ').slice(0,2).join(' ')}</div>
+        <div class="kpi-note">${fmt(App.metric==='cop'?topA.v:topA.u)}</div></div>
+      <div class="kpi gray"><div class="kpi-lbl">${prevYr} (comparado)</div>
+        <div class="kpi-val">${fmt(prevVal)}</div><div class="kpi-note">Mismo periodo</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Top Producto</div>
+        <div class="kpi-val amber" style="font-size:13px">${topP.key.slice(0,15)}</div>
+        <div class="kpi-note">${fmt(App.metric==='cop'?topP.v:topP.u)}</div></div>`;
+
+    // Yearly chart
+    const yrs=D.yrows.filter(r=>!App.filters.year||r[0]<=parseInt(App.filters.year));
+    Charts.yearly('c-yearly',yrs.map(r=>({yr:r[0],v:r[1],u:r[2]})));
+
+    // Monthly comparison
+    const monthlySeries=buildMonthlySeries();
+    Charts.monthlyComparison('c-yoy',monthlySeries,yr-1,yr);
+
+    // Line mix
+    const lineMap=groupBy(filterProws(),r=>r[3],r=>[r[5],r[6]]);
+    const lines=topN(lineMap,10).map(l=>({linea:l.key,v:l.v,u:l.u}));
+    Charts.lineMix('c-line-pie',lines);
+
+    // Zone bar
+    const zoneMap=groupBy(filterZrows().filter(r=>r[0]===yr),r=>r[1],r=>[r[2],r[3]]);
+    const zones=topN(zoneMap,6).map(z=>({zona:z.key,v:z.v,u:z.u}));
+    Charts.zoneBar('c-zone-bar',zones);
+
+    // Top products
+    const prods=topN(byProd,10).map(p=>({familia:p.key,linea:'',v:p.v,u:p.u}));
+    Charts.topProducts('c-top-prods',prods);
+
+    // Top clients
+    const byClient=groupBy(filterCrows(),r=>r[3],r=>[r[5],r[6]]);
+    const topClients=topN(byClient,10).map(c=>({cliente:c.key,v:c.v,u:c.u}));
+    Charts.topClients('c-top-clients',topClients);
+  }
+
+  function buildMonthlySeries(){
+    const series=[];
+    const all=D.mall;
+    const MES=D.meta.mes_names;
+    all.forEach(r=>{series.push({yr:r[0],mes:MES[r[1]],mn:r[1],v:r[2],u:r[3]});});
+    return series;
+  }
+
+  // ── P1 ASESORES ─────────────────────────────────────────────────────────────
+  function buildP1(){
+    const filtered=filterMrows();
+    const yr=parseInt(App.filters.year)||2026;
+
+    // Aggregate by asesor
+    const byAsesor=groupBy(filtered,r=>r[3],r=>[r[5],r[6]]);
+    const advList=topN(byAsesor,20).map(a=>({
+      nombre:a.key, v:a.v, u:a.u,
+      zona:D.asesor_info[a.key]?D.asesor_info[a.key].zona:'',
+      gerente:D.asesor_info[a.key]?D.asesor_info[a.key].gerente:''
+    }));
+
+    // YoY per asesor
+    const curVals=groupBy(D.mrows.filter(r=>r[0]===yr&&(!App.filters.zona||r[2]===App.filters.zona)&&(!App.filters.linea||r[4]===App.filters.linea)),r=>r[3],r=>[r[5],r[6]]);
+    const prevVals=groupBy(D.mrows.filter(r=>r[0]===yr-1&&(!App.filters.zona||r[2]===App.filters.zona)&&(!App.filters.linea||r[4]===App.filters.linea)),r=>r[3],r=>[r[5],r[6]]);
+
+    advList.forEach(a=>{
+      const cv=curVals[a.nombre]?curVals[a.nombre].v:0;
+      const pv=prevVals[a.nombre]?prevVals[a.nombre].v:0;
+      a.growth_yoy=pv>0?parseFloat(((cv-pv)/pv*100).toFixed(1)):0;
+      // top products
+      const ap=D.prows.filter(r=>r[2]===a.nombre&&r[0]===yr);
+      const pm=groupBy(ap,r=>r[4],r=>[r[5],r[6]]);
+      a.top_products=topN(pm,3).map(p=>p.key);
+      // top clients
+      const ac=D.crows.filter(r=>r[2]===a.nombre&&r[0]===yr);
+      const cm=groupBy(ac,r=>r[3],r=>[r[5],r[6]]);
+      a.top_clients=topN(cm,3).map(c=>c.key);
+      a.clientes=new Set(ac.map(r=>r[3])).size;
+    });
+
+    const total=advList.reduce((s,a)=>s+(App.metric==='cop'?a.v:a.u),0);
+    const best=advList.length?advList.reduce((b,a)=>a.growth_yoy>b.growth_yoy?a:b):{nombre:'—',growth_yoy:0};
+    const worst=advList.length?advList.reduce((b,a)=>a.growth_yoy<b.growth_yoy?a:b):{nombre:'—',growth_yoy:0};
+
+    document.getElementById('kpis-1').innerHTML=`
+      <div class="kpi"><div class="kpi-lbl">Asesores</div><div class="kpi-val red">${advList.length}</div><div class="kpi-note">En filtro</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Total</div><div class="kpi-val green">${fmt(total)}</div><div class="kpi-note">${yr}</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Mayor crecimiento</div><div class="kpi-val amber" style="font-size:13px">${best.nombre.split(' ').slice(0,2).join(' ')}</div><div class="kpi-note">${fmtPct(best.growth_yoy)}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Mayor caída</div><div class="kpi-val red" style="font-size:13px">${worst.nombre.split(' ').slice(0,2).join(' ')}</div><div class="kpi-note">${fmtPct(worst.growth_yoy)}</div></div>`;
+
+    const tbody=document.getElementById('adv-tbody');
+    document.getElementById('adv-th-v').textContent=App.metric==='cop'?'Ventas COP':'Unidades';
+    tbody.innerHTML='';
+    const maxV=advList[0]?getVal(advList[0]):1;
+    advList.forEach((a,i)=>{
+      const val=getVal(a);const pct=total>0?(val/total*100).toFixed(1):'0.0';
+      const bw=Math.round(val/maxV*100);
+      const gc=a.growth_yoy>=10?'green':a.growth_yoy>=-5?'neutral':'down';
+      tbody.innerHTML+=`<tr>
+        <td class="rank-n">${i+1}</td>
+        <td style="font-weight:600;font-size:11px">${a.nombre.split(' ').slice(0,3).join(' ')}</td>
+        <td>${pillZ(a.zona)}</td>
+        <td style="font-size:10px;color:var(--gray)">${a.gerente.split(' ').slice(0,2).join(' ')}</td>
+        <td style="font-weight:700">${fmt(val)}</td>
+        <td><span class="badge ${gc}">${a.growth_yoy>=0?'▲':'▼'} ${fmtPct(a.growth_yoy)}</span></td>
+        <td>${(a.clientes||0).toLocaleString()}</td>
+        <td style="font-size:10px">${(a.top_products||['—'])[0]}</td>
+        ${rBar(bw)}</tr>`;
+    });
+
+    Charts.gerentes('c-gerentes',advList);
+    updateAdvChartStatic(advList[0]?advList[0].nombre:'');
+    buildAdvisorCardsStatic(advList);
+  }
+
+  function updateAdvChartStatic(nombre){
+    if(!nombre||!D) return;
+    const MES=D.meta.meses;
+    const mk=(yr)=>{
+      const m={};
+      D.mrows.filter(r=>r[3]===nombre&&r[0]===yr).forEach(r=>{
+        const mes=D.meta.mes_names[r[1]];
+        if(!m[mes])m[mes]={v:0,u:0};
+        m[mes].v+=r[5]; m[mes].u+=r[6];
+      });
+      return m;
+    };
+    Charts.advisorMonthly('c-adv-monthly',mk(2025),mk(2026));
+  }
+
+  // ── P2 ZONAS ────────────────────────────────────────────────────────────────
+  function buildP2(){
+    const yr=parseInt(App.filters.year)||2026;
+    const allZones=D.zrows;
+    const lz=allZones.filter(r=>r[0]===yr&&(!App.filters.zona||r[1]===App.filters.zona));
+    const total=lz.reduce((s,r)=>s+(App.metric==='cop'?r[2]:r[3]),0);
+    const get=(z)=>{const r=lz.find(x=>x[1]===z)||[0,0,0,0];return App.metric==='cop'?r[2]:r[3];};
+
+    document.getElementById('kpis-2').innerHTML=`
+      <div class="kpi"><div class="kpi-lbl">Total ${yr}</div><div class="kpi-val red">${fmt(total)}</div><div class="kpi-note">Filtro actual</div></div>
+      <div class="kpi gray"><div class="kpi-lbl">Periferia</div><div class="kpi-val">${fmt(get('PERIFERIA'))}</div><div class="kpi-note">${total>0?(get('PERIFERIA')/total*100).toFixed(0):0}%</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Centro</div><div class="kpi-val green">${fmt(get('CENTRO'))}</div><div class="kpi-note">${total>0?(get('CENTRO')/total*100).toFixed(0):0}%</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">MP</div><div class="kpi-val amber">${fmt(get('MP'))}</div><div class="kpi-note">Canal B2B</div></div>`;
+
+    const zones=lz.map(r=>({zona:r[1],v:r[2],u:r[3]}));
+    Charts.zoneTrend('c-zone-trend',D.zrows.map(r=>({yr:r[0],zona:r[1],v:r[2],u:r[3]})));
+    Charts.zoneBar('c-zone-bar-p2',zones);
+    const cm={'PERIFERIA':'#E43733','CENTRO':'#4B4B4B','MP':'#27AE60'};
+    Charts.donut('c-zone-pie',zones.map(z=>z.zona+' ('+(total>0?Math.round(getVal(z)/total*100):0)+'%)'),zones.map(z=>getVal(z)),zones.map(z=>cm[z.zona]||'#9C9E9F'));
+  }
+
+  // ── P3 CLIENTES ─────────────────────────────────────────────────────────────
+  function buildP3(){
+    const cr=filterCrows();
+    const byClient=groupBy(cr,r=>r[3],r=>[r[5],r[6]]);
+    const byType={};
+    cr.forEach(r=>{const t=r[4];if(!byType[t])byType[t]={v:0,u:0};byType[t].v+=r[5];byType[t].u+=r[6];});
+    const pedMap={};
+    cr.forEach(r=>{if(!pedMap[r[3]])pedMap[r[3]]=0;pedMap[r[3]]+=r[7];});
+    const clients=topN(byClient,25).map(c=>({cliente:c.key,v:c.v,u:c.u,pedidos:pedMap[c.key]||0,tipo:cr.find(r=>r[3]===c.key)?cr.find(r=>r[3]===c.key)[4]:''}));
+    const total=clients.reduce((s,c)=>s+getVal(c),0);
+    const maxV=clients[0]?getVal(clients[0]):1;
+
+    document.getElementById('kpis-3').innerHTML=`
+      <div class="kpi"><div class="kpi-lbl">Top Cliente</div><div class="kpi-val" style="font-size:12px">${clients[0]?clients[0].cliente.slice(0,20):'—'}</div><div class="kpi-note">${fmt(clients[0]?getVal(clients[0]):0)}</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Total Sell-In</div><div class="kpi-val green">${fmt(total)}</div><div class="kpi-note">Top ${clients.length} clientes</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Concentración Top 3</div><div class="kpi-val amber">${total>0?(clients.slice(0,3).reduce((s,c)=>s+getVal(c),0)/total*100).toFixed(0):0}%</div><div class="kpi-note">Riesgo dependencia</div></div>
+      <div class="kpi blue"><div class="kpi-lbl">Sell-Out</div><div class="kpi-val" style="font-size:13px">COLSUBSIDIO</div><div class="kpi-note">Único cliente con datos</div></div>`;
+
+    document.getElementById('client-th').textContent=App.metric==='cop'?'Sell-In COP':'Unidades';
+    const tbody=document.getElementById('client-tbody');
+    tbody.innerHTML='';
+    clients.forEach((c,i)=>{
+      const val=getVal(c);const pct=total>0?(val/total*100).toFixed(1):'0.0';const bw=Math.round(val/maxV*100);
+      const tc=c.tipo==='CORPORATIVO'?'pill-c':c.tipo==='PARTICULAR'?'pill-o':'pill-p';
+      tbody.innerHTML+=`<tr><td class="rank-n">${i+1}</td><td style="font-size:10px;font-weight:600">${c.cliente}</td><td><span class="pill ${tc}" style="font-size:8px">${c.tipo.split('/')[0]}</span></td><td style="font-weight:700;color:var(--blue)">${fmt(val)}</td><td>${c.pedidos.toLocaleString()}</td><td style="color:var(--gray)">${pct}%</td>${rBar(bw)}</tr>`;
+    });
+    Charts.clientType('c-client-type',clients);
+    Charts.clientFreq('c-client-freq',clients);
+
+    // Sell-In monthly chart
+    const yr=parseInt(App.filters.year)||2026;
+    const MES=D.meta.meses;
+    const byMon={}; MES.forEach(m=>byMon[m]={v:0,u:0});
+    filterMrows().filter(r=>r[0]===yr).forEach(r=>{const m=D.meta.mes_names[r[1]];if(m&&byMon[m]){byMon[m].v+=r[5];byMon[m].u+=r[6];}});
+    const monData=MES.filter(m=>byMon[m].v>0).map(m=>({yr,mes:m,v:byMon[m].v,u:byMon[m].u}));
+    Charts.sellInOutMonthly('c-sellin-sellout',monData.map(d=>({yr:d.yr,mes:d.mes,v:d.v,u:d.u})));
+    document.getElementById('sellout-note').innerHTML=`<div class="insight amber-i"><strong>Sell-In</strong> = lo que Fagron factura a cada cliente. <strong>Sell-Out</strong> = venta al consumidor final, solo disponible para Colsubsidio → pestaña <strong>⑦ Colsubsidio</strong>.</div>`;
+  }
+
+  // ── P4 PRODUCTOS ─────────────────────────────────────────────────────────────
+  function buildP4(){
+    const pr=filterProws();
+    const byFam=groupBy(pr,r=>r[4],r=>[r[5],r[6]]);
+    const byLine=groupBy(pr,r=>r[3],r=>[r[5],r[6]]);
+    const prods=topN(byFam,15).map(p=>{const lRow=pr.find(r=>r[4]===p.key);return{familia:p.key,linea:lRow?lRow[3]:'',v:p.v,u:p.u};});
+    const lines=topN(byLine,10).map(l=>({linea:l.key,v:l.v,u:l.u}));
+    const total=prods.reduce((s,p)=>s+getVal(p),0);
+    const minoxV=prods.filter(p=>p.familia.includes('MINOXIDIL')).reduce((s,p)=>s+getVal(p),0);
+    const cosmV=prods.filter(p=>p.linea==='COSMETICOS').reduce((s,p)=>s+getVal(p),0);
+    const top=prods[0];
+    document.getElementById('kpis-4').innerHTML=`
+      <div class="kpi"><div class="kpi-lbl">Familia Líder</div><div class="kpi-val" style="font-size:13px">${top?top.familia.slice(0,15):'—'}</div><div class="kpi-note">${fmt(top?getVal(top):0)}</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Total</div><div class="kpi-val green">${fmt(total)}</div><div class="kpi-note">Todos los productos</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Cosméticos</div><div class="kpi-val amber">${fmt(cosmV)}</div><div class="kpi-note">Mayor potencial</div></div>
+      <div class="kpi gray"><div class="kpi-lbl">Minoxidil</div><div class="kpi-val">${fmt(minoxV)}</div><div class="kpi-note">Oral + Tópico</div></div>`;
+    document.getElementById('prod-detail-sub').textContent=App.filters.linea?'Filtrado: '+App.filters.linea:'Periodo seleccionado';
+    Charts.topProducts('c-family',prods);
+    Charts.lineMix('c-line-donut',lines);
+    const lt=lines.reduce((s,l)=>s+getVal(l),0);
+    const tbody=document.getElementById('line-tbody');
+    document.getElementById('lt-v').textContent=App.metric==='cop'?'Ventas COP':'Unidades';
+    tbody.innerHTML='';
+    lines.forEach(l=>{const val=getVal(l);tbody.innerHTML+=`<tr><td>${l.linea.replace('MAGISTRALES ','Mag.')}</td><td style="font-weight:700">${fmt(val)}</td><td style="color:var(--gray)">${lt>0?(val/lt*100).toFixed(1):0}%</td></tr>`;});
+  }
+
+  // ── P5 ESPECIALIDADES ────────────────────────────────────────────────────────
+  function buildP5(){
+    const specs=D.srows.map(r=>({esp:r[0],v:r[1],u:r[2]})).filter(s=>s.esp&&s.esp!=='NAN');
+    const doctors=D.drows.map(r=>({medico:r[0],esp:r[1],v:r[2],u:r[3]}));
+    const topS=specs[0];
+    document.getElementById('kpis-5').innerHTML=`
+      <div class="kpi"><div class="kpi-lbl">Especialidad #1</div><div class="kpi-val" style="font-size:12px">${topS?topS.esp.slice(0,16):'—'}</div><div class="kpi-note">${fmt(topS?getVal(topS):0)}</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Médico Top</div><div class="kpi-val green" style="font-size:11px">${doctors[0]?doctors[0].medico.slice(0,20):'—'}</div><div class="kpi-note">${fmt(doctors[0]?getVal(doctors[0]):0)}</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Especialidades</div><div class="kpi-val amber">${specs.length}</div><div class="kpi-note">Con ventas 2025–2026</div></div>
+      <div class="kpi gray"><div class="kpi-lbl">Top 20 médicos</div><div class="kpi-val">${fmt(doctors.slice(0,20).reduce((s,d)=>s+getVal(d),0))}</div><div class="kpi-note">Ventas asociadas</div></div>`;
+    Charts.specialties('c-specs',specs.slice(0,10));
+    Charts.topClients('c-docs',doctors.slice(0,10).map(d=>({...d,cliente:d.medico})));
+    const tbody=document.getElementById('doc-tbody');
+    document.getElementById('doc-th').textContent=App.metric==='cop'?'Ventas COP':'Unidades';
+    tbody.innerHTML='';
+    doctors.forEach((d,i)=>{
+      const p=i<5?'<span class="badge down" style="font-size:9px">🔴 Alta</span>':i<10?'<span class="badge" style="background:#fffbf0;color:#b47e00;font-size:9px">🟡 Media</span>':'<span class="badge neutral" style="font-size:9px">🟢 Normal</span>';
+      tbody.innerHTML+=`<tr><td class="rank-n">${i+1}</td><td style="font-weight:600">${d.medico}</td><td><span class="pill pill-c" style="font-size:8px">${d.esp}</span></td><td style="font-weight:700">${fmt(getVal(d))}</td><td>${p}</td></tr>`;
+    });
+  }
+
+  // ── P6 COLSUBSIDIO ───────────────────────────────────────────────────────────
+  function buildP6(){loadColsubsidioStatic('');}
+  function loadColsubsidioStatic(tienda){
+    const cs=D.cs;
+    const sel=document.getElementById('f-tienda');
+    if(sel&&cs.stores&&sel.options.length<=1){
+      cs.stores.slice(0,200).forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s.slice(0,40);sel.appendChild(o);});
+    }
+    const prods=cs.prods.map(r=>({DESCRIPCION:r[0],unidades:r[1]}));
+    const inv=cs.inv.map(r=>({DESCRIPCION:r[0],inventario:r[1],valor:r[2]}));
+    const totalSO=prods.reduce((s,p)=>s+p.unidades,0);
+    document.querySelector('#page-6 .colsub-kpis').innerHTML=`
+      <div class="colsub-kpi"><div class="cv">${totalSO.toLocaleString()}</div><div class="cl">Sell-Out Total (u)</div></div>
+      <div class="colsub-kpi"><div class="cv">${prods[0]?prods[0].DESCRIPCION.slice(0,15):'—'}</div><div class="cl">Producto líder</div></div>
+      <div class="colsub-kpi"><div class="cv">${cs.stores?cs.stores.length:0} PDV</div><div class="cl">Puntos de venta</div></div>
+      <div class="colsub-kpi"><div class="cv">${inv.length}</div><div class="cl">SKUs con inventario</div></div>`;
+    const monthly=cs.monthly.map(r=>({yr:r[0],mn:r[1],so:r[2]}));
+    Charts.colsubMonthly('c-colsub-monthly',monthly);
+    Charts.colsubSO('c-colsub-so',prods);
+    Charts.colsubInv('c-colsub-inv',inv);
+    const rotation=[];
+    const soMap=Object.fromEntries(prods.map(p=>[p.DESCRIPCION,p.unidades]));
+    inv.forEach(ri=>{
+      const so=soMap[ri.DESCRIPCION]||0,inv_u=ri.inventario;
+      const rot=inv_u>0?+(so/inv_u).toFixed(2):0;
+      const st=rot>1.5?'riesgo_agotado':rot>0.5?'normal':so>0?'baja_rotacion':'sin_sell_out';
+      rotation.push({prod:ri.DESCRIPCION,so,inv:inv_u,rot,status:st});
+    });
+    const tbody=document.getElementById('colsub-rot-tbody');
+    if(tbody){tbody.innerHTML='';rotation.forEach(r=>{const sm={riesgo_agotado:['🔴','Riesgo agotado','var(--red)'],normal:['🟢','Normal','var(--green)'],baja_rotacion:['🟡','Baja rotación','var(--amber)'],sin_sell_out:['⚪','Sin sell-out','var(--gray)']};const[ico,txt,col]=sm[r.status]||['⚪','—','var(--gray)'];tbody.innerHTML+=`<tr><td style="font-weight:600;font-size:11px">${r.prod.slice(0,30)}</td><td>${r.so.toLocaleString()}</td><td>${r.inv.toLocaleString()}</td><td style="font-weight:700">${r.rot}x</td><td style="color:${col}">${ico} ${txt}</td></tr>`;});}
+  }
+
+  // ── P7 INCONSISTENCIAS ───────────────────────────────────────────────────────
+  function buildP7(){
+    const byAsesor={};
+    D.mrows.forEach(r=>{if(!byAsesor[r[3]])byAsesor[r[3]]=new Set();byAsesor[r[3]].add(r[2]);});
+    const incons=Object.entries(byAsesor).filter(([,z])=>z.size>1).map(([a,z])=>({asesor:a,zonas:[...z]})).sort((a,b)=>a.asesor.localeCompare(b.asesor));
+    document.getElementById('incon-count').textContent=incons.length;
+    const el=document.getElementById('incon-list');
+    if(!incons.length){el.innerHTML='<div class="empty-state"><div class="icon">✅</div><p>Sin inconsistencias detectadas.</p></div>';return;}
+    el.innerHTML=incons.map(inc=>{const pills=inc.zonas.map(z=>{const c=z==='PERIFERIA'?'pill-p':z==='CENTRO'?'pill-c':z==='MP'?'pill-m':'pill-s';return`<span class="pill ${c}">${z}</span>`;}).join(' ');return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:11px;flex-wrap:wrap"><span class="sem sem-a"></span><strong style="min-width:190px">${inc.asesor}</strong>${pills}</div>`;}).join('');
+  }
+
+  // ── P8 FORECAST ──────────────────────────────────────────────────────────────
+  function buildP8(){
+    const MES=D.meta.meses;
+    const seasonal={};
+    MES.forEach(m=>{
+      const vals=[];
+      [2023,2024,2025].forEach(yr=>{
+        const total=D.mall.filter(r=>r[0]===yr).reduce((s,r)=>s+r[2],0);
+        const mo=D.mall.filter(r=>r[0]===yr&&D.meta.mes_names[r[1]]===m).reduce((s,r)=>s+r[2],0);
+        if(total>0)vals.push(mo/total);
+      });
+      seasonal[m]=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+    });
+    const ytd=D.mall.filter(r=>r[0]===2026).reduce((s,r)=>s+r[2],0);
+    const ytdMons=new Set(D.mall.filter(r=>r[0]===2026).map(r=>D.meta.mes_names[r[1]]));
+    const ytdPct=MES.filter(m=>ytdMons.has(m)).reduce((s,m)=>s+seasonal[m],0);
+    const ann=ytdPct>0?ytd/ytdPct:0;
+    const forecast=MES.filter(m=>!ytdMons.has(m)).map(m=>({mes:m,conservador:Math.round(ann*seasonal[m]*0.92),esperado:Math.round(ann*seasonal[m]),acelerado:Math.round(ann*seasonal[m]*1.15)}));
+    const fe=forecast.reduce((s,r)=>s+r.esperado,0),fc2=forecast.reduce((s,r)=>s+r.conservador,0),fa=forecast.reduce((s,r)=>s+r.acelerado,0);
+
+    document.getElementById('kpis-8').innerHTML=`
+      <div class="kpi"><div class="kpi-lbl">YTD 2026</div><div class="kpi-val red">${fmt(ytd)}</div><div class="kpi-note">Datos reales</div></div>
+      <div class="kpi gray"><div class="kpi-lbl">Conservador</div><div class="kpi-val">${fmt(ytd+fc2)}</div><div class="kpi-note">Escenario bajo</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Esperado</div><div class="kpi-val green">${fmt(ytd+fe)}</div><div class="kpi-note">Proyección base</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Acelerado</div><div class="kpi-val amber">${fmt(ytd+fa)}</div><div class="kpi-note">Con plan H2</div></div>`;
+
+    const monthlySeries=D.mall.map(r=>({yr:r[0],mes:D.meta.mes_names[r[1]],mn:r[1],v:r[2],u:r[3]}));
+    Charts.forecast('c-forecast',monthlySeries,forecast);
+    const grid=document.getElementById('fc-grid');
+    if(grid)grid.innerHTML=forecast.map(f=>`<div class="fc-month"><div class="fc-mes">${f.mes.slice(0,3)}</div><div class="fc-row"><div class="fc-v fc-conserv">${fmt(f.conservador)}</div><div class="fc-sc">Conserv.</div></div><div class="fc-row" style="margin-top:4px"><div class="fc-v fc-esper">${fmt(f.esperado)}</div><div class="fc-sc">Esperado</div></div><div class="fc-row" style="margin-top:4px"><div class="fc-v fc-acel">${fmt(f.acelerado)}</div><div class="fc-sc">Acelerado</div></div></div>`).join('');
+  }
+
+  // ── P9 PLAN DE ACCIÓN ────────────────────────────────────────────────────────
+  const ACTIONS = {
+    'JUAN DAVID LOAIZA':[
+      {p:1,col:'',t:'Intensificar visita médica — Neuromédica y dermatos Periferia',d:'Cliente #1 genera $414M. Visitar top 20 dermatos no activos con muestra Minoxidil magistral y protocolo de caída de cabello. Meta: 10 nuevos prescriptores/mes.',kpi:'Neuromédica +20% · 10 dermatos nuevos',plazo:'Jun–Ago'},
+      {p:1,col:'',t:'Campaña Solar Sunglass en farmacias Medellín–Antioquia',d:'Temporada solar May–Ago. Activar en Audifarma, Pasteur y farmacias independientes con display y precio especial.',kpi:'$50M adicionales Sunglass H2',plazo:'May–Ago'},
+      {p:2,col:'amber',t:'Ampliar mix Sofia Posada Jurado — 650 pedidos, alta frecuencia',d:'Cliente particular #2 con altísima frecuencia. Actualmente Minoxidil/Dutasteride. Proponer Fresh Skin y ABSORB-K para ampliar ticket.',kpi:'Ticket promedio +15%',plazo:'Jul'},
+      {p:2,col:'amber',t:'Reactivar 200 clientes con última compra >90 días',d:'Con 3.859 clientes, muchos están inactivos. Revisión proactiva con oferta específica de Minoxidil o Dutasteride.',kpi:'200 clientes reactivados H2',plazo:'Jun–Jul'},
+      {p:3,col:'green',t:'Consolidar Hidroxiurea en centros oncológicos',d:'Producto #2 con alta recurrencia. Mapear 10 oncólogos/hematólogos que no prescriben y hacer visita mensual con protocolo.',kpi:'10 oncólogos activos',plazo:'Jul–Sep'},
+    ],
+    'JUAN GUILLERMO GUTIERREZ':[
+      {p:1,col:'',t:'URGENTE: Diagnosticar y corregir caída -6.4% YoY',d:'Único asesor top de Periferia con caída. Diagnosticar clientes perdidos, cambios en mix o pérdida de médicos. Plan correctivo antes del 30 julio.',kpi:'Diagnóstico + plan correctivo',plazo:'Junio'},
+      {p:1,col:'',t:'Activar ABSORB-K en canal derma y farmacias Periferia',d:'Producto #2 con alto potencial en temporada. Rinoderma es clave. Proponer exhibición especial y dermoconsultora.',kpi:'$80M en ABSORB-K H2',plazo:'Jun–Ago'},
+      {p:2,col:'amber',t:'Desarrollar Naltrexona con psiquiatras y adictólogos',d:'Producto #3 con alta recurrencia. Canal médico sin desarrollar. Visitar 10 psiquiatras con protocolo LDN.',kpi:'10 psiquiatras activos',plazo:'Jul–Sep'},
+      {p:2,col:'amber',t:'Retener Grupo AFIN — distribuidor logístico clave',d:'Principal distribuidor. Proponer contrato marco de abastecimiento mensual fijo con descuento por volumen.',kpi:'Contrato anual AFIN',plazo:'Junio'},
+      {p:3,col:'green',t:'Aprovechar 4.116 clientes — mayor base del equipo',d:'Segmentar por frecuencia y potencial. Top 200 mueve el 80% del volumen. Plan de atención diferencial por segmento.',kpi:'Top 200 clientes mapeados',plazo:'Jun–Jul'},
+    ],
+    'NICOLAS MUNERA':[
+      {p:1,col:'',t:'Capitalizar Carolina Palacio SAS — médico #1 del país',d:'Dermatóloga con mayor generación de ventas ($495M). Proponer convenio exclusivo de formulación magistral Fagron. Visita mensual.',kpi:'Ventas C. Palacio +25% H2',plazo:'Jun–Dic'},
+      {p:1,col:'',t:'Activar ABSORB-K y Fresh Skin en canal Retail Centro',d:'Productos #2/#3 con temporada solar. Farmacia Institucional puede activar con cross-sell en receta de Minoxidil.',kpi:'$100M cosméticos H2',plazo:'May–Ago'},
+      {p:2,col:'amber',t:'Desarrollar Beauty Concept Products — potencial distribuidor',d:'Cliente #3 creciente. Potencial de convertirse en distribuidor especializado de cosméticos Fagron en Bogotá.',kpi:'Volumen Beauty +50%',plazo:'Jul–Sep'},
+      {p:2,col:'amber',t:'Mapear 20 dermatos en Bogotá sin formulación activa',d:'Con 350 clientes, hay margen de expansión. Identificar dermatólogos de alto perfil que no formulan con Fagron.',kpi:'15 dermatos nuevos activos',plazo:'Jun–Sep'},
+      {p:3,col:'green',t:'Argumentario Minoxidil oral vs genéricos en Bogotá',d:'Bogotá tiene mayor penetración de genéricos. Desarrollar dossier diferencial con datos de efectividad del magistral.',kpi:'Participación Minoxidil +10%',plazo:'Jun–Ago'},
+    ],
+    'DIANA BECERRA':[
+      {p:1,col:'',t:'CRÍTICO: Recuperación urgente Colsubsidio',d:'Cliente #1 cayó -53% YoY. Reunión inmediata con comprador. Diagnosticar causa (precio, servicio, competencia). Plan de recuperación con incentivos.',kpi:'Recuperar $300M Colsubsidio H2',plazo:'Junio'},
+      {p:1,col:'',t:'Diagnóstico caída -53% — identificar raíz del problema',d:'Revisar facturas perdidas vs 2025, clientes migrados, cambios en servicio. Sin diagnóstico no hay solución.',kpi:'Diagnóstico completo documentado',plazo:'Junio'},
+      {p:1,col:'',t:'Reactivar Cruz Verde con propuesta solar',d:'Cliente #2. Proponer exhibición ABSORB-K + Sunglass para temporada solar. Diana tiene los productos correctos.',kpi:'$80M Cruz Verde H2',plazo:'Jun–Ago'},
+      {p:2,col:'amber',t:'Profundizar Beta Estradiol con ginecólogos Bogotá',d:'Producto hormonal de alta recurrencia. Visitar top 20 ginecólogos zona Centro con protocolo de TRH magistral.',kpi:'15 nuevos prescriptores TRH',plazo:'Jun–Sep'},
+      {p:3,col:'green',t:'Activar Instituto Fertilidad con magistrales ginecológicas',d:'Cliente #3 con alto potencial. Protocolo completo de magistrales para estimulación ovárica. Alta recurrencia si se fideliza.',kpi:'$30M Instituto Fertilidad',plazo:'Jul–Sep'},
+    ],
+    'GISELA URIBE':[
+      {p:1,col:'',t:'Sostener y crecer Pasteur — cliente estrella +58.3%',d:'Principal motor de su crecimiento. Asegurar abastecimiento continuo. Alianza solar con Sunglass en puntos estratégicos.',kpi:'Pasteur $400M+ H2',plazo:'Jun–Dic'},
+      {p:1,col:'',t:'Maximizar Sunglass temporada solar May–Ago',d:'Mayor potencial solar del equipo. Ampliar cobertura en Audifarma, Pasteur y droguerías independientes de toda la zona.',kpi:'Sunglass +40% vs 2025',plazo:'May–Ago'},
+      {p:2,col:'amber',t:'Desarrollar canal médico con Progesterona y hormonas',d:'Alta recurrencia en ginecología. Mapear top 15 ginecólogos de la zona y visita mensual con protocolo TRH.',kpi:'10 ginecólogos activos',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Documentar modelo de éxito +58.3% para replicar',d:'La asesor con mayor crecimiento. Registrar estrategias con Pasteur y Audifarma para sesión de mejores prácticas.',kpi:'Sesión best practices equipo',plazo:'Jul'},
+      {p:3,col:'green',t:'Prospectar 5 clientes nuevos en ciudades de la zona',d:'Potencial geográfico sin explotar en Cali, Buenaventura y ciudades intermedias del eje cafetero.',kpi:'5 clientes nuevos Q3',plazo:'Jul–Sep'},
+    ],
+    'MALKA MARTINLEYES':[
+      {p:1,col:'',t:'Activar Sunglass en Audifarma Barranquilla — zona Caribe',d:'Audifarma es el cliente #1. Temporada solar en la costa es la más intensa del país. Exhibición premium Sunglass.',kpi:'$60M Sunglass en Audifarma',plazo:'May–Ago'},
+      {p:1,col:'',t:'Crecer Ketoconazol con dermatos de la costa Atlántica',d:'Producto #2 con alta recurrencia en dermatología tropical. Visitar top 20 dermatos Barranquilla, Cartagena y Santa Marta.',kpi:'15 dermatos activos costa',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Consolidar ETICOS S.A.S. como distribuidor regional',d:'Cliente #2. Potencial de convertirse en distribuidor Caribe. Proponer esquema con metas trimestrales y condiciones preferenciales.',kpi:'Acuerdo distribución Caribe',plazo:'Jul'},
+      {p:2,col:'amber',t:'Eliminar valles — activación en meses bajos',d:'Identificar los 3 meses más bajos históricamente y proponer acciones específicas para cada uno.',kpi:'Sin meses bajo $100M H2',plazo:'H2 2026'},
+      {p:3,col:'green',t:'Upsell en top 100 clientes — de 1 producto a 2+',d:'Con 1.145 clientes, muchos compran un solo producto. Estrategia de upsell en el top 100 puede mover el volumen.',kpi:'Ticket +12% en top 100',plazo:'Jun–Ago'},
+    ],
+    'LUISA FERNANDA TORRES':[
+      {p:1,col:'',t:'Crecer con Medicina Estética y Tricología — cliente ancla',d:'Cliente ancla. Expansión con Tricho-Foam + Gluconato en programa de tricología integral. Protocolo completo Fagron.',kpi:'$40M adicionales MTI',plazo:'Jun–Sep'},
+      {p:1,col:'',t:'Activar Minoxidil en Cruz Verde de su zona',d:'Cruz Verde está en la cartera con alto potencial. Exhibición especial Minoxidil tópico con comunicación de prescripción médica.',kpi:'Cruz Verde $50M H2',plazo:'Jun–Ago'},
+      {p:2,col:'amber',t:'Protocolo Tricho-Foam para dermatos tricólogos',d:'Crear protocolo médico en alopecia y visitar top 15 dermatos especializados en tricología de la zona.',kpi:'12 dermatos tricólogos activos',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Sostener +23.1% — plan vs estacionalidad junio-julio',d:'Curva ascendente pero con meses bajos en jun-jul. Activación específica con clientes anclados.',kpi:'Sin mes bajo meta H2',plazo:'Jun–Jul'},
+      {p:3,col:'green',t:'Prospectar 10 centros tricológicos de la zona',d:'El canal tricológico es su diferenciador. Mapear clínicas en Medellín y eje cafetero que no compran Fagron.',kpi:'10 centros nuevos Q3',plazo:'Jul–Oct'},
+    ],
+    'CRISTINA TAVERA':[
+      {p:1,col:'',t:'Profundizar Bella Piel SAS — tienda especializada clave',d:'Cliente #1. Programa dermoconsultora en puntos Bella Piel con Minoxidil + Fresh Skin + ABSORB-K.',kpi:'Bella Piel $100M H2',plazo:'Jun–Dic'},
+      {p:1,col:'',t:'Crecer Fresh Skin y cosméticos en temporada solar',d:'Fresh Skin = producto #3 en plena temporada. Activar en Bella Piel, Hair Doctors y clientes de estética zona Centro.',kpi:'Cosméticos +30% H2',plazo:'May–Ago'},
+      {p:2,col:'amber',t:'Desarrollar Hair Doctors — clínica tricóloga premium',d:'Cliente #2 con alta especialización. Portafolio completo Fagron para protocolos de tricología médica.',kpi:'Hair Doctors $60M H2',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Activar Dutasteride en urólogos y dermatos zona Centro',d:'Producto #2, alta recurrencia en andrología. Visitar top 15 urólogos/dermatos Bogotá con protocolo FAGA.',kpi:'10 prescriptores Dutasteride',plazo:'Jun–Sep'},
+      {p:3,col:'green',t:'Reactivar base de 1.463 clientes — buscar inactivos',d:'Segunda mayor cartera del equipo. Revisión de quienes no han comprado en 90 días y reactivación dirigida.',kpi:'100 clientes reactivados',plazo:'Jun–Jul'},
+    ],
+    'MARLY PAOLA BOLAÑO SUAREZ':[
+      {p:1,col:'',t:'Consolidar La Botica de la Piel — tienda especializada top',d:'Cliente #1. Programa de exhibición permanente Sunglass + ABSORB-K para temporada solar. Dermoconsultora en PDV.',kpi:'La Botica $80M H2',plazo:'Jun–Dic'},
+      {p:1,col:'',t:'Capitalizar Sunglass y Minoxidil — productos estrella',d:'Top 2 productos en temporada alta. Activar en todos los clientes de canal farmacia y dermo. +28.7% YoY confirma el potencial.',kpi:'Sunglass+Minoxidil +30% H2',plazo:'May–Ago'},
+      {p:2,col:'amber',t:'Desarrollar Oncofem IPS — canal oncológico femenino',d:'Cliente #3. Potencial en tratamientos cáncer de mama: hormonas, ácido retinoico. Visita mensual con protocolo.',kpi:'Oncofem $25M H2',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Activar canal estética con AC Retinoico',d:'Producto #3 con alto potencial en estética. Mapear clínicas de la zona y proponer protocolo de piel con Ácido Retinoico.',kpi:'8 clínicas estéticas nuevas',plazo:'Jul–Sep'},
+      {p:3,col:'green',t:'Sostener momentum +28.7% — plan mensual de acciones',d:'Uno de los mayores crecimientos del equipo. Plan mensual específico para mantener el crecimiento en H2.',kpi:'Mantener >$100M/mes H2',plazo:'Jun–Dic'},
+    ],
+    'ALEJANDRO HENAO':[
+      {p:1,col:'',t:'URGENTE: Diagnosticar caída -19.6% YoY',d:'Primera acción: entender la raíz. ¿Clientes perdidos? ¿Frecuencia baja? Revisar facturación mes a mes vs 2025.',kpi:'Diagnóstico completo documentado',plazo:'Junio'},
+      {p:1,col:'',t:'Reactivar canal solar — Sunglass es el producto #1',d:'Temporada solar es la oportunidad de recuperación. Clientes dermo y farmacia de la zona son los ideales. Activación May–Ago.',kpi:'Sunglass $40M en H2',plazo:'May–Ago'},
+      {p:2,col:'amber',t:'Retener Fernando Jiménez García — cliente #1',d:'Cliente principal en riesgo. Visita presencial inmediata. Entender necesidades actuales y proponer mix ampliado.',kpi:'Fernando Jiménez sin caída',plazo:'Junio'},
+      {p:2,col:'amber',t:'Activar Audifarma con Fresh Skin — temporada solar',d:'Audifarma = cliente #2. Fresh Skin en temporada solar puede generar volumen incremental rápido.',kpi:'$20M Fresh Skin Audifarma',plazo:'Jun–Ago'},
+      {p:3,col:'green',t:'Recuperar nivel histórico >$65M/mes',d:'En 2025 tuvo meses de $110M+. Plan mensual con meta mínima de $65M/mes para estabilizar primero, luego crecer.',kpi:'$65M mínimo mensual H2',plazo:'Jun–Dic'},
+    ],
+    'JESSICA GONZALEZ':[
+      {p:1,col:'',t:'Profundizar Tadalafilo con urólogos y andrólogos Bogotá',d:'Producto #1, nicho de alta recurrencia. Visitar top 20 urólogos y andrólogos Bogotá con protocolo disfunción eréctil.',kpi:'15 prescriptores Tadalafilo',plazo:'Jun–Sep'},
+      {p:1,col:'',t:'Desarrollar Vivaliti Colombia — clínica estética en crecimiento',d:'Cliente #1 con $256M. Ampliar con cosméticos y magistrales tópicos para procedimientos pre/post.',kpi:'Vivaliti $80M H2',plazo:'Jun–Dic'},
+      {p:2,col:'amber',t:'Activar canal clínicas estéticas Bogotá',d:'El crecimiento +54.5% viene de este canal. Mapear 10 clínicas adicionales con portafolio Beta Estradiol + Tadalafilo + Fresh Skin.',kpi:'5 nuevas clínicas activas',plazo:'Jul–Sep'},
+      {p:2,col:'amber',t:'Crecer Beta Estradiol con ginecólogos y endocrinólogos',d:'Producto #2, alta recurrencia. Visitar top 15 especialistas con protocolo de TRH y calidad del magistral Fagron.',kpi:'10 nuevos prescriptores TRH',plazo:'Jun–Sep'},
+      {p:3,col:'green',t:'Replicar modelo Dermacenter en centros similares',d:'Dermacenter = cliente #2, centro dermo de alto perfil. Documentar el modelo y buscar 5 centros similares en Bogotá.',kpi:'3 nuevos centros dermo activos',plazo:'Jul–Oct'},
+    ],
+    'NANCY CAICEDO':[
+      {p:1,col:'',t:'Consolidar Audifarma como canal institucional prioritario',d:'Cliente #1 con facturación de Activos y magistrales. Proponer contrato de suministro anual con precios fijos.',kpi:'Contrato Audifarma anual',plazo:'Junio'},
+      {p:1,col:'',t:'Crecer Sulfadiazina y Lidocaína en hospitales de Bogotá',d:'Productos #2/#3 de consumo hospitalario. Fund. Misericordia y Santa Fe son clientes ancla. Proponer cuadro de medicamentos a otros hospitales.',kpi:'5 hospitales nuevos Q3',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Ampliar base de 62 clientes — potencial crítico',d:'Base más pequeña del equipo (62) pero factura $680M. Cada cliente nuevo de alta facturación impacta significativamente.',kpi:'15 nuevos clientes H2',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Desarrollar magistrales especiales hospitalarias',d:'Centro-Bogotá tiene los hospitales más grandes del país. Proponer preparaciones magistrales especiales no disponibles comercialmente.',kpi:'3 nuevas fórmulas hospitalarias',plazo:'Jul–Sep'},
+      {p:3,col:'green',t:'Programa Activos para formuladores magistrales',d:'Activos = producto #1. Identificar 10 farmacias magistrales de Bogotá que no compran Fagron y visitar con catálogo.',kpi:'10 farmacias formuladoras nuevas',plazo:'Jul–Oct'},
+    ],
+    'MAIRA ACOSTA':[
+      {p:1,col:'',t:'Contratos marco con Megalabs y Munera Jaramillo',d:'Top 2 clientes B2B. Con +130% YoY, el canal MP está en su mejor momento. Contratos anuales con precios escalonados por volumen.',kpi:'Contratos anuales top 2 clientes',plazo:'Junio'},
+      {p:1,col:'',t:'Catálogo técnico digital de Activos para formuladores',d:'Activos = producto #1. Los laboratorios necesitan fichas técnicas, certificados de calidad, estabilidad, CAS. Catálogo PDF y web.',kpi:'Catálogo listo para presentación',plazo:'Julio'},
+      {p:2,col:'amber',t:'Prospectar 20 farmacias de formulación magistral',d:'Los formuladores son los clientes naturales. Mapear las 20 más importantes de Colombia y hacer visita con propuesta.',kpi:'20 formuladoras prospectas',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Capitalizar activos UV en canal B2B solar',d:'Sunglass = producto #2. Identificar 5 compañías cosméticas que formulen solares y proponer activos Fagron.',kpi:'$50M activos solares B2B',plazo:'May–Ago'},
+      {p:3,col:'green',t:'Explorar distribución regional — Salcobrand como palanca',d:'Tiene cliente en Chile que valida calidad exportable. Explorar 1 distribuidor en Perú o Ecuador para ampliar el canal.',kpi:'1 distribuidor nuevo región',plazo:'H2 2026'},
+    ],
+  };
+
+  function buildP9(){
+    const yr=parseInt(App.filters.year)||2026;
+    const byAsesor=groupBy(filterMrows(),r=>r[3],r=>[r[5],r[6]]);
+    const advList=topN(byAsesor,20).map(a=>{
+      const curV=D.mrows.filter(r=>r[3]===a.key&&r[0]===yr).reduce((s,r)=>s+r[5],0);
+      const prvV=D.mrows.filter(r=>r[3]===a.key&&r[0]===yr-1).reduce((s,r)=>s+r[5],0);
+      const g=prvV>0?parseFloat(((curV-prvV)/prvV*100).toFixed(1)):0;
+      const zone=D.asesor_info[a.key]?D.asesor_info[a.key].zona:'';
+      const ger=D.asesor_info[a.key]?D.asesor_info[a.key].gerente:'';
+      const ap=D.prows.filter(r=>r[2]===a.key&&r[0]===yr);
+      const pm=groupBy(ap,r=>r[4],r=>[r[5],r[6]]);
+      const tp=topN(pm,3).map(p=>p.key);
+      return{nombre:a.key,v:a.v,u:a.u,growth_yoy:g,zona:zone,gerente:ger,top_products:tp,top_clients:[]};
+    });
+    const ytd=D.mall.filter(r=>r[0]===2026).reduce((s,r)=>s+r[2],0);
+    const el=document.getElementById('p9-content');
+    el.innerHTML=`<div style="background:var(--black);border-radius:8px;padding:20px;margin-bottom:20px;border-left:5px solid var(--red)"><div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">📌 Objetivo Central H2 2026</div><div style="font-size:15px;font-weight:700;color:var(--white);line-height:1.6">YTD 2026: <span style="color:var(--salmon)">${fmt(ytd)}</span></div><div style="font-size:11px;color:var(--gray);margin-top:8px">Basado en estacionalidad histórica 2023–2025 + datos reales</div></div>`;
+    const declining=advList.filter(a=>a.growth_yoy<-5).sort((a,b)=>a.growth_yoy-b.growth_yoy);
+    const growing=advList.filter(a=>a.growth_yoy>10).sort((a,b)=>b.growth_yoy-a.growth_yoy);
+    if(declining.length){el.innerHTML+=`<div class="section-hdr" style="margin-bottom:12px"><div class="bar" style="background:var(--red)"></div><h2 style="font-size:15px;color:var(--red)">🔴 Asesores con Acción Urgente</h2></div>`;declining.forEach(a=>{el.innerHTML+=advAlertCard(a);});}
+    if(growing.length){el.innerHTML+=`<div class="section-hdr" style="margin:16px 0 12px"><div class="bar" style="background:var(--green)"></div><h2 style="font-size:15px;color:var(--green)">🟢 Modelos de Éxito</h2></div>`;growing.forEach(a=>{el.innerHTML+=advAlertCard(a);});}
+    el.innerHTML+=`<div class="section-hdr" style="margin:20px 0 12px"><div class="bar"></div><h2 style="font-size:15px">📋 Top 5 Acciones por Asesor</h2></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px">`;
+    advList.forEach(a=>{ el.innerHTML+=buildFullCard(a); });
+    el.innerHTML+=`</div>`;
+  }
+
+  function advAlertCard(a){
+    const g=a.growth_yoy,bc=g>=0?'var(--green)':'var(--red)';
+    return`<div style="background:var(--white);border-radius:6px;padding:14px 18px;border-left:4px solid ${bc};box-shadow:var(--shadow);margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><strong>${a.nombre.split(' ').slice(0,3).join(' ')}</strong> ${pillZ(a.zona)}</div><span class="badge ${g>=0?'up':'down'}">${g>=0?'▲':'▼'} ${fmtPct(g)} YoY</span></div><div style="font-size:11px;margin-top:6px">Top productos: <strong>${(a.top_products||[]).slice(0,2).join(', ')||'—'}</strong></div></div>`;
+  }
+
+  function buildFullCard(a){
+    const actions=ACTIONS[a.nombre]||[
+      {p:1,col:'',t:'Consolidar top producto '+((a.top_products||['—'])[0]),d:'Profundizar con top clientes.',kpi:'Meta mensual +15%',plazo:'Jun–Ago'},
+      {p:1,col:'',t:'Campaña solar con cosméticos',d:'Temporada May–Ago.',kpi:'+30% cosméticos',plazo:'May–Ago'},
+      {p:2,col:'amber',t:'Visita médica intensiva',d:'Mapear top 20 dermatos activos.',kpi:'20 médicos/mes',plazo:'Jun–Sep'},
+      {p:2,col:'amber',t:'Reactivar clientes inactivos',d:'Revisión últimas 3 compras.',kpi:'30 reactivados',plazo:'Jun–Jul'},
+      {p:3,col:'green',t:'Ampliar mix de productos',d:'Introducir productos complementarios.',kpi:'Ticket +10%',plazo:'Jul–Sep'},
+    ];
+    const g=a.growth_yoy||0,bc=g>10?'var(--green)':g>=-5?'var(--amber)':'var(--red)';
+    let h=`<div class="adv-card"><div class="adv-header" style="border-left-color:${bc}"><div><div class="adv-name">${a.nombre.split(' ').slice(0,3).join(' ')}</div>${pillZ(a.zona)}</div><div style="text-align:right"><div style="font-weight:700;font-size:14px">${fmt(getVal(a))}</div><span class="badge ${g>=0?'up':'down'}">${g>=0?'▲':'▼'} ${fmtPct(g)}</span></div></div><div class="adv-body"><div style="font-size:11px;margin-bottom:10px">Top: <strong>${(a.top_products||[]).slice(0,2).join(' · ')||'—'}</strong></div>`;
+    actions.forEach((ac,i)=>{h+=`<div class="action-row"><div class="action-num ${ac.col}">${i+1}</div><div><strong style="font-size:11px">${ac.t}</strong><br>${ac.d}<br><span class="tag">${ac.kpi}</span><span class="tag">📅 ${ac.plazo}</span></div></div>`;});
+    h+=`</div></div>`;
+    return h;
+  }
+
+  // ── P10 MOLÉCULAS ────────────────────────────────────────────────────────────
+  function buildP10(){
+    const pr=filterProws();
+    const excl=new Set(['FLETES','OTRAS ACTIVIDADES','OTRAS VENTAS','NAN','MAQUILA','']);
+    const molPr=pr.filter(r=>!excl.has(r[4]));
+    const byFam=groupBy(molPr,r=>r[4],r=>[r[5],r[6]]);
+    const summary=topN(byFam,20).map(m=>{
+      const lRow=molPr.find(r=>r[4]===m.key);
+      const yr=parseInt(App.filters.year)||2026;
+      const cv=molPr.filter(r=>r[4]===m.key&&r[0]===yr).reduce((s,r)=>s+r[5],0);
+      const pv=molPr.filter(r=>r[4]===m.key&&r[0]===yr-1).reduce((s,r)=>s+r[5],0);
+      const g=pv>0?parseFloat(((cv-pv)/pv*100).toFixed(1)):0;
+      return{familia:m.key,v:m.v,u:m.u,linea:lRow?lRow[3]:'',growth_yoy:g};
+    });
+    const mTotal=summary.reduce((s,m)=>s+m.v,0);
+    const best=summary.length?summary.reduce((b,a)=>a.growth_yoy>b.growth_yoy?a:b):{familia:'—',growth_yoy:0};
+    document.getElementById('kpis-10').innerHTML=`
+      <div class="kpi"><div class="kpi-lbl">Molécula #1</div><div class="kpi-val red" style="font-size:13px">${summary[0]?summary[0].familia:'—'}</div><div class="kpi-note">${fmt(summary[0]?summary[0].v:0)}</div></div>
+      <div class="kpi green"><div class="kpi-lbl">Molécula #2</div><div class="kpi-val green" style="font-size:13px">${summary[1]?summary[1].familia:'—'}</div><div class="kpi-note">${fmt(summary[1]?summary[1].v:0)}</div></div>
+      <div class="kpi amber"><div class="kpi-lbl">Mayor Crecimiento</div><div class="kpi-val amber" style="font-size:12px">${best.familia}</div><div class="kpi-note">${fmtPct(best.growth_yoy)} YoY</div></div>
+      <div class="kpi"><div class="kpi-lbl">Moléculas Activas</div><div class="kpi-val">${summary.length}</div><div class="kpi-note">Con ventas en filtro</div></div>`;
+    const tbody=document.getElementById('mol-tbody');
+    const maxMV=summary[0]?summary[0].v:1;
+    tbody.innerHTML='';
+    summary.forEach((m,i)=>{
+      const gc=m.growth_yoy>=10?'green':m.growth_yoy>=-5?'neutral':'down';
+      const bw=Math.round(m.v/maxMV*100);
+      const lc=m.linea==='MAGISTRALES ORALES'?'pill-c':m.linea==='COSMETICOS'?'pill-s':m.linea==='ACTIVOS'?'pill-m':'pill-p';
+      tbody.innerHTML+=`<tr><td class="rank-n">${i+1}</td><td style="font-weight:600">${m.familia}</td><td><span class="pill ${lc}" style="font-size:8px">${m.linea.replace('MAGISTRALES ','M.')}</span></td><td style="font-weight:700">${fmt(m.v)}</td><td style="color:var(--gray)">${mTotal>0?(m.v/mTotal*100).toFixed(1):0}%</td><td><span class="badge ${gc}">${m.growth_yoy>=0?'▲':'▼'} ${fmtPct(m.growth_yoy)}</span></td>${rBar(bw)}</tr>`;
+    });
+    // Yearly chart
+    const topMols=summary.slice(0,6).map(m=>m.familia);
+    const yearlyData=[];
+    [...new Set(molPr.map(r=>r[0]))].sort().forEach(yr=>{
+      topMols.forEach(mol=>{
+        const v=molPr.filter(r=>r[0]===yr&&r[4]===mol).reduce((s,r)=>s+r[5],0);
+        const u=molPr.filter(r=>r[0]===yr&&r[4]===mol).reduce((s,r)=>s+r[6],0);
+        yearlyData.push({familia:mol,yr,v,u});
+      });
+    });
+    Charts.moleculeYearly('c-mol-yearly',yearlyData,topMols);
+    // Monthly
+    const yr=parseInt(App.filters.year)||2026;
+    const top5=summary.slice(0,5).map(m=>m.familia);
+    const monthlyMol=[];
+    molPr.filter(r=>r[0]===yr&&top5.includes(r[4])).forEach(r=>{
+      monthlyMol.push({familia:r[4],yr:r[0],mes:D.meta.mes_names[r[1]],mn:r[1],v:r[5],u:r[6]});
+    });
+    Charts.moleculeMonthly('c-mol-monthly',monthlyMol,top5);
+    Charts.topProducts('c-mol-top',summary.slice(0,15));
+  }
+
+  function buildAdvisorCardsStatic(advList){
+    const grid=document.getElementById('adv-actions-grid');
+    if(!grid)return;
+    grid.innerHTML='';
+    advList.forEach(a=>{grid.innerHTML+=buildFullCard(a);});
+  }
+
+  return{build,rebuild};
+})();
+
+// Colsubsidio tienda handler
+function loadColsubsidio(tienda){ Charts.destroyAll(); Pages.rebuild(6); }
+// Advisor select handler
+function onAdvisorSelect(nombre){ if(D) Pages['_updateAdv']=nombre; }
+
+</script>
+</body>
+</html>
