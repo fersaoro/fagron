@@ -62,9 +62,8 @@ mall = [[int(r.AÑO),int(r.MES_NUM),int(r.v),int(r.u)] for _,r in mall_df.iterro
 prods = mrec.groupby(['AÑO','ZONA','ASESOR','LINEA','FAMILIA']).agg(v=('VALORES','sum'),u=('CANTIDAD','sum')).reset_index()
 prows = [[int(r.AÑO),r.ZONA,r.ASESOR,r.LINEA,r.FAMILIA,int(r.v),int(r.u)] for _,r in prods.iterrows()]
 
-# clients [yr,zona,asesor,cliente,tipo,v,u,pedidos]
+# clients [yr,zona,asesor,cliente,tipo,v,u,pedidos] — sin filtro de mínimo
 clients = mrec.groupby(['AÑO','ZONA','ASESOR','CLIENTE','TIPO DE CLIENTE']).agg(v=('VALORES','sum'),u=('CANTIDAD','sum'),pedidos=('DOCUMENTO','count')).reset_index()
-clients = clients[clients['v'] >= 300000]
 crows = [[int(r.AÑO),r.ZONA,r.ASESOR,r.CLIENTE,r['TIPO DE CLIENTE'],int(r.v),int(r.u),int(r.pedidos)] for _,r in clients.iterrows()]
 
 # yearly [yr,v,u]

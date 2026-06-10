@@ -17,8 +17,15 @@ function fmt(v) {
     if (n >= 1e3) return Math.round(n/1e3)+' K u';
     return Math.round(n)+' u';
   }
+  // COP — valores en pesos colombianos
+  // MM = miles de millones (millardos)
+  if (n >= 1e9) return '$'+(n/1e9).toFixed(3)+' MM';
+  if (n >= 1e6) return '$'+(n/1e6).toFixed(1)+' M';
+  if (n >= 1e3) return '$'+(n/1e3).toFixed(1)+' K';
+  return '$'+Math.round(n);
+}
   // COP en pesos colombianos
-  if (n >= 1e9) return '$'+(n/1e9).toFixed(2)+' MM';
+  if (n >= 1e9) return '$'+(n/1e9).toFixed(3)+' MM';
   if (n >= 1e6) return '$'+(n/1e6).toFixed(1)+' M';
   if (n >= 1e3) return '$'+Math.round(n/1e3)+' K';
   return '$'+Math.round(n);
