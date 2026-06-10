@@ -717,7 +717,7 @@ async function loadData() {
     const r = await fetch('datos.json');
     D = await r.json();
     document.getElementById('status-info').textContent =
-      `${D.yrows.reduce((s,r)=>s+r[1],0).toLocaleString()} registros · Años: ${D.meta.years.join(', ')}`;
+      `Datos: ${D.meta.years[D.meta.years.length-1]}–${D.meta.years[0]} · ${D.meta.years.length} años disponibles`;
     populateFilters();
     Pages.rebuild(0);
   } catch(e) {
@@ -1333,61 +1333,34 @@ const Pages = (()=>{
   function buildP0(){
     const yr=parseInt(App.filters.year)||2026;
     const filtered=filterMrows();
+    const useGlobal=!App.filters.asesor&&!App.filters.gerente&&!App.filters.linea&&!App.filters.zona;
+    let val,prevVal;
 
-    // Use mall (all asesores) for global totals when no asesor/gerente/linea filter
-    // Use mrows (13 main) when those filters are active
-    const useGlobal = !App.filters.asesor && !App.filters.gerente && !App.filters.linea && !App.filters.zona;
-    let val, prevVal, growth;
     if(useGlobal){
-      // Use mall for accurate global totals
-      const mallFiltered = D.mall.filter(r=>!App.filters.year||r[0]===parseInt(App.filters.year));
-      const mallPrev = D.mall.filter(r=>r[0]===(yr-1));
-      const curMnsGlobal = new Set(mallFiltered.map(r=>r[1]));
-      const mallPrevSame = mallPrev.filter(r=>curMnsGlobal.has(r[1]));
-      val = mallFiltered.reduce((s,r)=>s+(App.metric==='cop'?r[2]:r[3]),0);
-      prevVal = mallPrevSame.reduce((s,r)=>s+(App.metric==='cop'?r[2]:r[3]),0);
+      // Use mall (all asesores/channels) for accurate global total
+      const mallF=D.mall.filter(r=>!App.filters.year||r[0]===yr);
+      const mallP=D.mall.filter(r=>r[0]===(yr-1));
+      const curMns=new Set(mallF.map(r=>r[1]));
+      val=mallF.reduce((s,r)=>s+(App.metric==='cop'?r[2]:r[3]),0);
+      prevVal=mallP.filter(r=>curMns.has(r[1])).reduce((s,r)=>s+(App.metric==='cop'?r[2]:r[3]),0);
     } else {
       const totals=sumMrows(filtered);
       val=App.metric==='cop'?totals.v:totals.u;
       const curMns=new Set(filtered.filter(r=>r[0]===yr).map(r=>r[1]));
-      const prevFiltered=D.mrows.filter(r=>{
-        if(r[0]!==(yr-1))return false;
-        if(!curMns.has(r[1]))return false;
+      prevVal=D.mrows.filter(r=>{
+        if(r[0]!==(yr-1)||!curMns.has(r[1]))return false;
         if(App.filters.zona&&r[2]!==App.filters.zona)return false;
         if(App.filters.asesor&&r[3]!==App.filters.asesor)return false;
         if(App.filters.linea&&r[4]!==App.filters.linea)return false;
         if(App.filters.gerente){const info=D.asesor_info[r[3]];if(!info||info.gerente!==App.filters.gerente)return false;}
         return true;
-      });
-      prevVal=prevFiltered.reduce((s,r)=>s+(App.metric==='cop'?r[5]:r[6]),0);
+      }).reduce((s,r)=>s+(App.metric==='cop'?r[5]:r[6]),0);
     }
-    // For global mode, also use mall for prev year
-    if(_useGlobal){
-      const _prevMall=D.mall.filter(r=>r[0]===(yr-1));
-      const _curMns=new Set(_mallF.map(r=>r[1]));
-      const _prevSame=_prevMall.filter(r=>_curMns.has(r[1]));
-      prevVal=App.metric==='cop'?_prevSame.reduce((s,r)=>s+r[2],0):_prevSame.reduce((s,r)=>s+r[3],0);
-    }
-    growth=prevVal>0?((val-prevVal)/prevVal*100).toFixed(1):0;
-
-    // Dummy for compatibility
-    const prevYr=yr-1;
-    const curMns=new Set(filtered.filter(r=>r[0]===yr).map(r=>r[1]));
-    const prevFiltered=D.mrows.filter(r=>{
-      if(r[0]!==prevYr)return false;
-      if(!curMns.has(r[1]))return false;
-      if(App.filters.zona&&r[2]!==App.filters.zona)return false;
-      if(App.filters.asesor&&r[3]!==App.filters.asesor)return false;
-      if(App.filters.linea&&r[4]!==App.filters.linea)return false;
-      if(App.filters.gerente){const info=D.asesor_info[r[3]];if(!info||info.gerente!==App.filters.gerente)return false;}
-      return true;
-    });
-    const prevTot=sumMrows(prevFiltered);
+    const growth=prevVal>0?((val-prevVal)/prevVal*100).toFixed(1):0;
 
     // Top asesor
     const byAsesor=groupBy(filtered,r=>r[3],r=>[r[5],r[6]]);
     const topA=topN(byAsesor,1)[0]||{key:'—',v:0,u:0};
-
     // Top product
     const byProd=groupBy(filterProws(),r=>r[4],r=>[r[5],r[6]]);
     const topP=topN(byProd,1)[0]||{key:'—',v:0,u:0};
@@ -1398,46 +1371,24 @@ const Pages = (()=>{
       <div class="kpi green"><div class="kpi-lbl">Top Asesor</div>
         <div class="kpi-val green" style="font-size:14px">${topA.key.split(' ').slice(0,2).join(' ')}</div>
         <div class="kpi-note">${fmt(App.metric==='cop'?topA.v:topA.u)}</div></div>
-      <div class="kpi gray"><div class="kpi-lbl">${prevYr} (comparado)</div>
-        <div class="kpi-val">${fmt(prevVal)}</div><div class="kpi-note">Mismo periodo</div></div>
+      <div class="kpi gray"><div class="kpi-lbl">${yr-1} (periodo equiv.)</div>
+        <div class="kpi-val">${fmt(prevVal)}</div><div class="kpi-note">Base comparación</div></div>
       <div class="kpi amber"><div class="kpi-lbl">Top Producto</div>
         <div class="kpi-val amber" style="font-size:13px">${topP.key.slice(0,15)}</div>
         <div class="kpi-note">${fmt(App.metric==='cop'?topP.v:topP.u)}</div></div>`;
 
-    // Yearly chart
-    const yrs=D.yrows.filter(r=>!App.filters.year||r[0]<=parseInt(App.filters.year));
+    // Charts
+    const yrs=D.yrows.filter(r=>!App.filters.year||r[0]<=yr);
     Charts.yearly('c-yearly',yrs.map(r=>({yr:r[0],v:r[1],u:r[2]})));
-
-    // Monthly comparison
-    const monthlySeries=buildMonthlySeries();
+    const monthlySeries=D.mall.map(r=>({yr:r[0],mes:D.meta.mes_names[r[1]],mn:r[1],v:r[2],u:r[3]}));
     Charts.monthlyComparison('c-yoy',monthlySeries,yr-1,yr);
-
-    // Line mix
     const lineMap=groupBy(filterProws(),r=>r[3],r=>[r[5],r[6]]);
-    const lines=topN(lineMap,10).map(l=>({linea:l.key,v:l.v,u:l.u}));
-    Charts.lineMix('c-line-pie',lines);
-
-    // Zone bar
-    const zoneMap=groupBy(filterZrows().filter(r=>r[0]===yr),r=>r[1],r=>[r[2],r[3]]);
-    const zones=topN(zoneMap,6).map(z=>({zona:z.key,v:z.v,u:z.u}));
-    Charts.zoneBar('c-zone-bar',zones);
-
-    // Top products
-    const prods=topN(byProd,10).map(p=>({familia:p.key,linea:'',v:p.v,u:p.u}));
-    Charts.topProducts('c-top-prods',prods);
-
-    // Top clients
+    Charts.lineMix('c-line-pie',topN(lineMap,10).map(l=>({linea:l.key,v:l.v,u:l.u})));
+    const zoneMap=groupBy(D.zrows.filter(r=>r[0]===yr&&(!App.filters.zona||r[1]===App.filters.zona)),r=>r[1],r=>[r[2],r[3]]);
+    Charts.zoneBar('c-zone-bar',topN(zoneMap,6).map(z=>({zona:z.key,v:z.v,u:z.u})));
+    Charts.topProducts('c-top-prods',topN(byProd,10).map(p=>({familia:p.key,linea:'',v:p.v,u:p.u})));
     const byClient=groupBy(filterCrows(),r=>r[3],r=>[r[5],r[6]]);
-    const topClients=topN(byClient,10).map(c=>({cliente:c.key,v:c.v,u:c.u}));
-    Charts.topClients('c-top-clients',topClients);
-  }
-
-  function buildMonthlySeries(){
-    const series=[];
-    const all=D.mall;
-    const MES=D.meta.mes_names;
-    all.forEach(r=>{series.push({yr:r[0],mes:MES[r[1]],mn:r[1],v:r[2],u:r[3]});});
-    return series;
+    Charts.topClients('c-top-clients',topN(byClient,10).map(c=>({cliente:c.key,v:c.v,u:c.u})));
   }
 
   // ── P1 ASESORES ─────────────────────────────────────────────────────────────
